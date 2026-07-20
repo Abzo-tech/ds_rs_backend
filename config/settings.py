@@ -215,7 +215,7 @@ SPECTACULAR_SETTINGS = {
     'SERVE_INCLUDE_SCHEMA': False,
     'SERVERS': [
         {'url': 'http://127.0.0.1:8000', 'description': 'Serveur Local'},
-        {'url': 'https://api.discover-senegal.sn', 'description': 'Serveur de Production'},
+        {'url': 'https://ds-rs-backend.onrender.com', 'description': 'Serveur de Production'},
     ],
 }
 
