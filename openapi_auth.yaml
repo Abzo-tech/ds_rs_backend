@@ -12,7 +12,7 @@ info:
 servers:
   - url: http://127.0.0.1:8000
     description: Serveur Local
-  - url: https://api.discover-senegal.sn
+  - url: https://ds-rs-backend.onrender.com
     description: Serveur de Production
 
 security:
