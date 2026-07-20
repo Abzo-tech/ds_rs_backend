@@ -269,7 +269,8 @@ APPLE_OAUTH_PRIVATE_KEY = os.environ.get('APPLE_OAUTH_PRIVATE_KEY', '')
 
 # Firebase Admin SDK (placeholder - prêt à être connecté)
 FIREBASE_CREDENTIALS_PATH = os.environ.get('FIREBASE_CREDENTIALS_PATH', '')
-FIREBASE_ENABLED = bool(FIREBASE_CREDENTIALS_PATH)
+FIREBASE_CREDENTIALS_JSON = os.environ.get('FIREBASE_CREDENTIALS_JSON', '')
+FIREBASE_ENABLED = bool(FIREBASE_CREDENTIALS_PATH or FIREBASE_CREDENTIALS_JSON)
 
 # Maadi AI (déjà présent dans feed/services.py, ajout des settings par défaut)
 MAADI_AI_URL = os.environ.get('MAADI_AI_URL', 'http://localhost:8001/maadi/recommend')

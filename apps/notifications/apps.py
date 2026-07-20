@@ -7,10 +7,14 @@ class NotificationsConfig(AppConfig):
     def ready(self):
         import os
         from django.conf import settings
+        import json
         try:
             import firebase_admin
             if settings.FIREBASE_ENABLED and not firebase_admin._apps:
-                cred = firebase_admin.credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+                if settings.FIREBASE_CREDENTIALS_JSON:
+                    cred = firebase_admin.credentials.Certificate(json.loads(settings.FIREBASE_CREDENTIALS_JSON))
+                else:
+                    cred = firebase_admin.credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
                 firebase_admin.initialize_app(cred)
         except Exception:
             pass
