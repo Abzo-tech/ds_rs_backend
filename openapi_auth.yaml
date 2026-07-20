@@ -1,0 +1,2359 @@
+openapi: 3.0.3
+info:
+  title: Discover Sénégal API
+  description: |
+    Contrat d'API officiel pour le réseau social Discover Sénégal.
+    Ce contrat sert de référence unique pour le Backend Django, l'Application Mobile Flutter,
+    la Plateforme de Réservation et le module Maadi AI.
+    Toutes les réponses de succès et d'erreurs sont standardisées.
+    La modération du contenu est assistée par Maadi AI : un contenu peut être mis en
+    pending_review pour une revue humaine légère sans bloquer l'expérience des autres utilisateurs.
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000
+    description: Serveur Local
+  - url: https://api.discover-senegal.sn
+    description: Serveur de Production
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ============================================================
+  # AUTHENTIFICATION
+  # ============================================================
+  /auth/register/:
+    post:
+      summary: Inscription d'un nouvel utilisateur
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Compte créé avec succès.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          description: Données de requête invalides.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /auth/login/:
+    post:
+      summary: Connexion par email/mot de passe
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Connexion réussie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: Identifiants invalides.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /auth/login/phone/:
+    post:
+      summary: Connexion par téléphone avec OTP
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneLoginRequest'
+      responses:
+        '200':
+          description: Connexion réussie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '404':
+          description: Numéro non enregistré.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+        '400':
+          description: Code OTP invalide.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /auth/register/phone/request/:
+    post:
+      summary: Demander un code OTP pour inscription par téléphone
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                phone_number:
+                  type: string
+                  example: "+221771234567"
+              required: [phone_number]
+      responses:
+        '200':
+          description: Code OTP envoyé (mock).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                  otp:
+                    type: string
+
+  /auth/register/phone/:
+    post:
+      summary: Inscription par téléphone avec OTP
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PhoneRegisterRequest'
+      responses:
+        '201':
+          description: Inscription réussie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          description: Code OTP invalide ou numéro déjà utilisé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /auth/token/refresh/:
+    post:
+      summary: Rafraîchir le token d'accès
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh:
+                  type: string
+              required: [refresh]
+      responses:
+        '200':
+          description: Token rafraîchi.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '401':
+          description: Refresh token invalide ou expiré.
+
+  /auth/logout/:
+    post:
+      summary: Déconnexion
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh:
+                  type: string
+                  description: Refresh token à révoquer
+                all_devices:
+                  type: boolean
+                  default: false
+                  description: Si true, déconnecte tous les appareils
+              required: [refresh]
+      responses:
+        '200':
+          description: Déconnexion réussie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+        '400':
+          description: Refresh token requis ou invalide.
+
+  /auth/password/change/:
+    post:
+      summary: Changer le mot de passe
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                  format: password
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 8
+              required: [old_password, new_password]
+      responses:
+        '200':
+          description: Mot de passe modifié.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+        '400':
+          description: Ancien mot de passe incorrect.
+
+  /auth/password/reset/:
+    post:
+      summary: Demander une réinitialisation de mot de passe
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required: [email]
+      responses:
+        '200':
+          description: Code OTP de réinitialisation envoyé (mock).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                  otp:
+                    type: string
+        '404':
+          description: Aucun compte avec cet email.
+
+  /auth/password/reset/confirm/:
+    post:
+      summary: Confirmer la réinitialisation de mot de passe
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                otp:
+                  type: string
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 8
+              required: [user_id, otp, new_password]
+      responses:
+        '200':
+          description: Mot de passe réinitialisé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+        '400':
+          description: Code OTP invalide ou expiré.
+
+  /auth/oauth/{provider}/:
+    post:
+      summary: Connexion OAuth (Google ou Apple)
+      tags: [Authentification]
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [google, apple]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthLoginRequest'
+      responses:
+        '200':
+          description: Connexion OAuth réussie.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+        '400':
+          description: Fournisseur non supporté ou erreur de vérification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  # ============================================================
+  # UTILISATEURS
+  # ============================================================
+  /users/me:
+    get:
+      summary: Profil utilisateur connecté
+      tags: [Utilisateurs]
+      responses:
+        '200':
+          description: Profil utilisateur.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+    put:
+      summary: Mettre à jour le profil utilisateur
+      tags: [Utilisateurs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdate'
+      responses:
+        '200':
+          description: Profil mis à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /users/me/profile:
+    get:
+      summary: Profil public de l'utilisateur connecté
+      tags: [Utilisateurs]
+      responses:
+        '200':
+          description: Profil public.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+    put:
+      summary: Mettre à jour le profil public
+      tags: [Utilisateurs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Profil mis à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+
+  /users/search/:
+    get:
+      summary: Rechercher des utilisateurs
+      tags: [Utilisateurs]
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Résultats de recherche.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+
+  /users/{user_id}/:
+    get:
+      summary: Profil public d'un utilisateur
+      tags: [Utilisateurs]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Profil public.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '404':
+          description: Utilisateur non trouvé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /users/{user_id}/follow/:
+    post:
+      summary: Suivre un utilisateur
+      tags: [Utilisateurs]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Utilisateur suivi.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Follow'
+        '400':
+          description: Déjà suivi ou erreur.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+    delete:
+      summary: Ne plus suivre un utilisateur
+      tags: [Utilisateurs]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Arrêt du suivi.
+
+  /users/{user_id}/certified/:
+    post:
+      summary: Attribuer le badge certifié (admin)
+      tags: [Utilisateurs]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Badge certifié attribué.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertifiedResponse'
+        '403':
+          description: Accès restreint.
+        '404':
+          description: Utilisateur non trouvé.
+    delete:
+      summary: Retirer le badge certifié (admin)
+      tags: [Utilisateurs]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Badge certifié retiré.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertifiedResponse'
+        '403':
+          description: Accès restreint.
+
+  /users/{user_id}/block/:
+    post:
+      summary: Bloquer un utilisateur
+      tags: [Utilisateurs]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Utilisateur bloqué.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+    delete:
+      summary: Débloquer un utilisateur
+      tags: [Utilisateurs]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Utilisateur débloqué.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  # ============================================================
+  # PARTENAIRES
+  # ============================================================
+  /partners/analytics:
+    get:
+      summary: Analytics quotidiennes des partenaires
+      tags: [Partenaires]
+      responses:
+        '200':
+          description: Liste des analytics.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PartnerDailyAnalytics'
+
+  /partners/analytics/posts:
+    get:
+      summary: Analytics quotidiennes des posts d'un partenaire
+      tags: [Partenaires]
+      responses:
+        '200':
+          description: Liste des analytics de posts.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PostAnalyticsDaily'
+
+  # ============================================================
+  # FEED
+  # ============================================================
+  /feed/:
+    get:
+      summary: Feed personnalisé (Maadi AI + fallback)
+      tags: [Feed]
+      parameters:
+        - name: lat
+          in: query
+          schema:
+            type: number
+        - name: lng
+          in: query
+          schema:
+            type: number
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Feed paginé.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+                  source:
+                    type: string
+        '401':
+          description: Non authentifié.
+
+  /feed/posts/:
+    post:
+      summary: Créer une publication
+      tags: [Feed]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreate'
+      responses:
+        '201':
+          description: Publication créée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Données invalides.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /feed/upload/:
+    post:
+      summary: Téléverser un média
+      tags: [Feed]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                type:
+                  type: string
+                  enum: [photo, video]
+              required: [file, type]
+      responses:
+        '201':
+          description: Média téléversé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaAsset'
+        '400':
+          description: Fichier invalide.
+
+  /feed/media/:
+    get:
+      summary: Liste des médias de l'utilisateur
+      tags: [Feed]
+      responses:
+        '200':
+          description: Liste des médias.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MediaAsset'
+
+  /feed/media/{media_id}/:
+    delete:
+      summary: Supprimer un média
+      tags: [Feed]
+      parameters:
+        - name: media_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Média supprimé.
+
+  /feed/posts/{post_id}/report/:
+    post:
+      summary: Signaler un post
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportCreate'
+      responses:
+        '201':
+          description: Signalement créé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400':
+          description: Déjà signalé ou données invalides.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /feed/posts/{post_id}/like/:
+    post:
+      summary: Aimer un post
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Post aimé.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+        '400':
+          description: Déjà aimé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+    delete:
+      summary: Retirer le like d'un post
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Like retiré.
+        '400':
+          description: Like non existant.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /feed/posts/{post_id}/comments/:
+    get:
+      summary: Liste des commentaires d'un post
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Commentaires paginés.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Comment'
+    post:
+      summary: Ajouter un commentaire
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: string
+                  maxLength: 300
+              required: [content]
+      responses:
+        '201':
+          description: Commentaire créé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+
+  /feed/posts/{post_id}/share/:
+    post:
+      summary: Partager un post
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Partage enregistré.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+        '404':
+          description: Post non trouvé.
+
+  /feed/posts/{post_id}/save/:
+    post:
+      summary: Sauvegarder un post
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Post sauvegardé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+    delete:
+      summary: Retirer le post des sauvegardes
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Post retiré des sauvegardes.
+
+  /feed/posts/{post_id}/repost/:
+    post:
+      summary: Reposter un post
+      tags: [Feed]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Repost créé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+        '400':
+          description: Action invalide.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /feed/stories/:
+    get:
+      summary: Liste des stories actives
+      tags: [Feed]
+      responses:
+        '200':
+          description: Stories paginées.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Story'
+    post:
+      summary: Créer une story
+      tags: [Feed]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StoryCreate'
+      responses:
+        '201':
+          description: Story créée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Story'
+
+  /feed/stories/{story_id}/view/:
+    post:
+      summary: Enregistrer une vue de story
+      tags: [Feed]
+      parameters:
+        - name: story_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Vue enregistrée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryView'
+        '200':
+          description: Vue déjà existante.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoryView'
+
+  /feed/discover/:
+    get:
+      summary: Onglet Découvrir
+      tags: [Feed]
+      parameters:
+        - name: lat
+          in: query
+          schema:
+            type: number
+        - name: lng
+          in: query
+          schema:
+            type: number
+        - name: dist
+          in: query
+          schema:
+            type: integer
+            default: 50000
+      responses:
+        '200':
+          description: Contenus tendances, événements locaux, mise en avant JOJ.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+
+  /feed/moderation/queue/:
+    get:
+      summary: Liste des posts en attente de modération assistée
+      tags: [Modération]
+      responses:
+        '200':
+          description: Posts en attente de revue humaine légère.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Post'
+        '403':
+          description: Accès restreint aux modérateurs/admins.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /feed/moderation/posts/{post_id}/{action}/:
+    post:
+      summary: Approuver ou rejeter un post en pending_review
+      tags: [Modération]
+      parameters:
+        - name: post_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [approve, reject]
+      responses:
+        '200':
+          description: Action de modération effectuée.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                  status:
+                    type: string
+        '400':
+          description: Action invalide ou post non modérable.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+        '404':
+          description: Post non trouvé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  # ============================================================
+  # CHAT
+  # ============================================================
+  /chat/conversations/:
+    get:
+      summary: Liste des conversations de l'utilisateur
+      tags: [Chat]
+      responses:
+        '200':
+          description: Conversations.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ConversationSummary'
+    post:
+      summary: Créer une conversation
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+              required: [user_id]
+      responses:
+        '200':
+          description: Conversation créée ou récupérée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+
+  /chat/conversations/{conversation_id}/mark-read/:
+    post:
+      summary: Marquer une conversation comme lue
+      tags: [Chat]
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversation marquée comme lue.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /chat/conversations/{conversation_id}/delete/:
+    post:
+      summary: Supprimer une conversation
+      tags: [Chat]
+      parameters:
+        - name: conversation_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Conversation supprimée.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /chat/messages/:
+    get:
+      summary: Liste des messages
+      tags: [Chat]
+      parameters:
+        - name: conversation_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Messages paginés.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Message'
+    post:
+      summary: Envoyer un message
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                conversation_id:
+                  type: string
+                  format: uuid
+                content:
+                  type: string
+                recipient_id:
+                  type: string
+                  format: uuid
+                  nullable: true
+              required: [conversation_id, content]
+      responses:
+        '201':
+          description: Message créé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+
+  # ============================================================
+  # AR FILTERS
+  # ============================================================
+  /ar-filters/:
+    get:
+      summary: Liste des filtres RA
+      tags: [AR Filters]
+      responses:
+        '200':
+          description: Filtres actifs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ARFilter'
+
+  /ar-filters/manifest/:
+    get:
+      summary: Manifest des filtres RA géolocalisés
+      tags: [AR Filters]
+      parameters:
+        - name: lat
+          in: query
+          schema:
+            type: number
+        - name: lng
+          in: query
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Manifest combiné global + géolocalisé.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ARFilter'
+
+  # ============================================================
+  # GÉOLOCALISATION
+  # ============================================================
+  /geo/pois/:
+    get:
+      summary: Liste des points d'intérêt
+      tags: [Géolocalisation]
+      parameters:
+        - name: lat
+          in: query
+          schema:
+            type: number
+        - name: lng
+          in: query
+          schema:
+            type: number
+        - name: dist
+          in: query
+          schema:
+            type: integer
+            default: 5000
+      responses:
+        '200':
+          description: Points d'intérêt actifs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointOfInterest'
+
+  /geo/nearby/:
+    get:
+      summary: Points d'intérêt à proximité
+      tags: [Géolocalisation]
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: dist
+          in: query
+          schema:
+            type: integer
+            default: 5000
+      responses:
+        '200':
+          description: POI proches.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PointOfInterest'
+
+  # ============================================================
+  # NOTIFICATIONS
+  # ============================================================
+  /notifications/:
+    get:
+      summary: Liste des notifications
+      tags: [Notifications]
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notifications paginées.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  next:
+                    type: string
+                    nullable: true
+                  previous:
+                    type: string
+                    nullable: true
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Notification'
+
+  /notifications/{id}/mark-read/:
+    post:
+      summary: Marquer une notification comme lue
+      tags: [Notifications]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification marquée comme lue.
+
+  /notifications/mark-all-read/:
+    post:
+      summary: Marquer toutes les notifications comme lues
+      tags: [Notifications]
+      responses:
+        '200':
+          description: Toutes les notifications marquées comme lues.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+
+  /notifications/fcm-token/:
+    post:
+      summary: Enregistrer un token FCM
+      tags: [Notifications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FCMTokenCreate'
+      responses:
+        '200':
+          description: Token enregistré.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FCMToken'
+
+  # ============================================================
+  # ADMIN
+  # ============================================================
+  /admin/users/:
+    get:
+      summary: Liste des utilisateurs (admin)
+      tags: [Admin]
+      responses:
+        '200':
+          description: Liste des utilisateurs.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserProfile'
+
+  /admin/users/{user_id}/:
+    delete:
+      summary: Supprimer un utilisateur (admin)
+      tags: [Admin]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Utilisateur supprimé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+    patch:
+      summary: Mettre à jour un utilisateur (admin)
+      tags: [Admin]
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                is_active:
+                  type: boolean
+                role:
+                  type: string
+                  enum: [public, tourist, partner, creator, admin]
+      responses:
+        '200':
+          description: Utilisateur mis à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /admin/ar-filters/:
+    get:
+      summary: Liste des filtres RA (admin)
+      tags: [Admin]
+      responses:
+        '200':
+          description: Liste des filtres.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ARFilter'
+    post:
+      summary: Créer un filtre RA (admin)
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ARFilter'
+      responses:
+        '201':
+          description: Filtre créé.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARFilter'
+
+  /admin/ar-filters/{pk}/:
+    get:
+      summary: Détail d'un filtre RA (admin)
+      tags: [Admin]
+      parameters:
+        - name: pk
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Détail du filtre.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARFilter'
+    put:
+      summary: Mettre à jour un filtre RA (admin)
+      tags: [Admin]
+      parameters:
+        - name: pk
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ARFilter'
+      responses:
+        '200':
+          description: Filtre mis à jour.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARFilter'
+    patch:
+      summary: Partiellement mettre à jour un filtre RA (admin)
+      tags: [Admin]
+      parameters:
+        - name: pk
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ARFilter'
+      responses:
+        '200':
+          description: Filtre mis à jour partiellement.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ARFilter'
+    delete:
+      summary: Supprimer un filtre RA (admin)
+      tags: [Admin]
+      parameters:
+        - name: pk
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Filtre supprimé.
+
+  /admin/notifications/broadcast/:
+    post:
+      summary: Diffuser une notification admin
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipient_ids:
+                  type: array
+                  items:
+                    type: string
+                    format: uuid
+                type:
+                  type: string
+                  enum: [new_follower, like, comment, message, filter_unlocked, joj_event]
+                payload:
+                  type: object
+              required: [recipient_ids, type, payload]
+      responses:
+        '200':
+          description: Notification diffusée.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+                  ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+
+  # ============================================================
+  # INTERNE
+  # ============================================================
+  /internal/maadi/recommend/:
+    post:
+      summary: Endpoint interne Maadi AI (serveur-à-serveur)
+      tags: [Interne]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                user_id:
+                  type: string
+                  format: uuid
+                behavior_signals:
+                  type: object
+                location:
+                  type: object
+                  nullable: true
+                limit:
+                  type: integer
+                  default: 20
+      responses:
+        '200':
+          description: Recommandations Maadi AI.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Post'
+                  source:
+                    type: string
+
+components:
+  schemas:
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        first_name:
+          type: string
+        last_name:
+          type: string
+        role:
+          type: string
+          enum: [public, tourist, partner, creator, admin]
+        consent_ai_training:
+          type: boolean
+        partner_establishment_id:
+          type: string
+          format: uuid
+          nullable: true
+        phone_number:
+          type: string
+          nullable: true
+        preferred_language:
+          type: string
+          enum: [fr, en, wo]
+        is_certified:
+          type: boolean
+        username:
+          type: string
+          nullable: true
+        bio:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        external_link:
+          type: string
+          format: uri
+          nullable: true
+        followers_count:
+          type: integer
+        following_count:
+          type: integer
+        posts_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+
+    UserProfileUpdate:
+      type: object
+      properties:
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone_number:
+          type: string
+          nullable: true
+        preferred_language:
+          type: string
+          enum: [fr, en, wo]
+        bio:
+          type: string
+          nullable: true
+        avatar_url:
+          type: string
+          format: uri
+          nullable: true
+        external_link:
+          type: string
+          format: uri
+          nullable: true
+
+    Profile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        display_name:
+          type: string
+        username:
+          type: string
+        avatar_media:
+          $ref: '#/components/schemas/MediaAsset'
+          nullable: true
+        location_label:
+          type: string
+        is_certified:
+          type: boolean
+        followers_count:
+          type: integer
+        following_count:
+          type: integer
+        posts_count:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+
+    ProfileUpdate:
+      type: object
+      properties:
+        display_name:
+          type: string
+        username:
+          type: string
+        location_label:
+          type: string
+
+    MediaAsset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [photo, video]
+        storage_url:
+          type: string
+          format: uri
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+        duration_seconds:
+          type: integer
+          nullable: true
+        has_watermark:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        media:
+          $ref: '#/components/schemas/MediaAsset'
+        caption:
+          type: string
+        ar_filter:
+          $ref: '#/components/schemas/ARFilter'
+          nullable: true
+        location:
+          type: object
+          nullable: true
+        location_name:
+          type: string
+        status:
+          type: string
+          enum: [published, pending_review, removed]
+          description: "Statut de modération automatique géré par Maadi AI."
+        moderation_score:
+          type: number
+          format: float
+          nullable: true
+          description: "Score de modération automatique (0.0 = rejeté, 1.0 = approuvé)."
+        is_sponsored:
+          type: boolean
+        likes_count:
+          type: integer
+        comments_count:
+          type: integer
+        shares_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        is_liked:
+          type: boolean
+
+    PostCreate:
+      type: object
+      properties:
+        media:
+          type: string
+          format: uuid
+        caption:
+          type: string
+          maxLength: 500
+        ar_filter:
+          type: string
+          format: uuid
+          nullable: true
+        location:
+          type: object
+          nullable: true
+        location_name:
+          type: string
+
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        content:
+          type: string
+          maxLength: 300
+        created_at:
+          type: string
+          format: date-time
+
+    Story:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        media:
+          $ref: '#/components/schemas/MediaAsset'
+        caption:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        is_active:
+          type: boolean
+
+    StoryCreate:
+      type: object
+      properties:
+        media:
+          type: string
+          format: uuid
+        caption:
+          type: string
+          maxLength: 150
+
+    StoryView:
+      type: object
+      properties:
+        story:
+          type: string
+          format: uuid
+        viewer:
+          type: string
+          format: uuid
+        viewed_at:
+          type: string
+          format: date-time
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        reason:
+          type: string
+          enum: [INAPPROPRIATE, SPAM, HARASSMENT, VIOLENCE, OTHER]
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    ReportCreate:
+      type: object
+      properties:
+        reason:
+          type: string
+          enum: [INAPPROPRIATE, SPAM, HARASSMENT, VIOLENCE, OTHER]
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+
+    ARFilter:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [culture_traditions, lieux_patrimoine, joj_2026, nature_faune]
+        sdk_effect_id:
+          type: string
+        file_url:
+          type: string
+          format: uri
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+        creator:
+          type: string
+          format: uuid
+          nullable: true
+        location:
+          type: object
+          nullable: true
+        radius_meters:
+          type: integer
+        is_geolocated:
+          type: boolean
+        is_time_limited:
+          type: boolean
+        available_from:
+          type: string
+          format: date-time
+          nullable: true
+        available_until:
+          type: string
+          format: date-time
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    PointOfInterest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        category:
+          type: string
+          enum: [tourist, cultural, gastronomy, sport, joj_2026]
+        location:
+          type: object
+          nullable: true
+        unlock_radius_meters:
+          type: integer
+        partner_establishment_id:
+          type: string
+          format: uuid
+          nullable: true
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [new_follower, like, comment, message, filter_unlocked, joj_event]
+        payload:
+          type: object
+        is_read:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    FCMToken:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        token:
+          type: string
+        device_type:
+          type: string
+          enum: [ios, android]
+        created_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+
+    FCMTokenCreate:
+      type: object
+      properties:
+        token:
+          type: string
+        device_type:
+          type: string
+          enum: [ios, android]
+          default: android
+
+    Conversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationParticipant'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ConversationParticipant:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        last_read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    ConversationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        other_user:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            first_name:
+              type: string
+            last_name:
+              type: string
+        last_message:
+          type: object
+          nullable: true
+          properties:
+            content:
+              type: string
+            timestamp:
+              type: string
+              format: date-time
+              nullable: true
+            sender_id:
+              type: string
+              format: uuid
+              nullable: true
+        unread_count:
+          type: integer
+        updated_at:
+          type: string
+          format: date-time
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        sender:
+          type: string
+          format: uuid
+        sender_email:
+          type: string
+          format: email
+        recipient:
+          type: string
+          format: uuid
+        recipient_email:
+          type: string
+          format: email
+        content:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        is_read:
+          type: boolean
+        is_me:
+          type: boolean
+        conversation:
+          type: string
+          format: uuid
+
+    Follow:
+      type: object
+      properties:
+        follower:
+          $ref: '#/components/schemas/UserProfile'
+        followee:
+          $ref: '#/components/schemas/UserProfile'
+        created_at:
+          type: string
+          format: date-time
+
+    CertifiedResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        is_certified:
+          type: boolean
+
+    PartnerDailyAnalytics:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        partner:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        views_count:
+          type: integer
+        interactions_count:
+          type: integer
+
+    PostAnalyticsDaily:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        post:
+          type: string
+          format: uuid
+        day:
+          type: string
+          format: date
+        views:
+          type: integer
+        reach:
+          type: integer
+        engagement:
+          type: integer
+
+    Tokens:
+      type: object
+      properties:
+        refresh:
+          type: string
+        access:
+          type: string
+      required: [refresh, access]
+
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        first_name:
+          type: string
+        last_name:
+          type: string
+        role:
+          type: string
+          enum: [public, tourist, partner, creator, admin]
+          default: public
+        consent_ai_training:
+          type: boolean
+        partner_establishment_id:
+          type: string
+          format: uuid
+          nullable: true
+        phone_number:
+          type: string
+          nullable: true
+        preferred_language:
+          type: string
+          enum: [fr, en, wo]
+          default: fr
+        username:
+          type: string
+          nullable: true
+      required: [email, password, consent_ai_training]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+      required: [email, password]
+
+    PhoneRegisterRequest:
+      type: object
+      properties:
+        phone_number:
+          type: string
+          example: "+221771234567"
+        otp_code:
+          type: string
+          minLength: 4
+          maxLength: 10
+        password:
+          type: string
+          format: password
+          minLength: 8
+        first_name:
+          type: string
+        last_name:
+          type: string
+        preferred_language:
+          type: string
+          enum: [fr, en, wo]
+          default: fr
+        username:
+          type: string
+          nullable: true
+        consent_ai_training:
+          type: boolean
+      required: [phone_number, otp_code, password, consent_ai_training]
+
+    PhoneLoginRequest:
+      type: object
+      properties:
+        phone_number:
+          type: string
+          example: "+221771234567"
+        otp_code:
+          type: string
+          minLength: 4
+          maxLength: 10
+      required: [phone_number, otp_code]
+
+    OAuthLoginRequest:
+      type: object
+      properties:
+        provider:
+          type: string
+          enum: [google, apple]
+        access_token:
+          type: string
+        id_token:
+          type: string
+          nullable: true
+      required: [access_token]
+
+    AuthSuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user:
+          $ref: '#/components/schemas/UserProfile'
+        tokens:
+          $ref: '#/components/schemas/Tokens'
+      required: [user, tokens]
+
+    ErrorDetailResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required: [detail]
+
+    ValidationErrorResponse:
+      type: object
+      additionalProperties:
+        type: array
+        items:
+          type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

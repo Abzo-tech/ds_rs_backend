@@ -1,0 +1,108 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:15-3.3
+        env:
+          POSTGRES_DB: discover_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password_discover_2026
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libpq-dev gdal-bin libgdal-dev libffi-dev libsqlite3-dev
+
+      - name: Create virtual environment
+        run: python -m venv venv
+
+      - name: Activate virtual environment and install dependencies
+        run: |
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run migrations
+        env:
+          DATABASE_URL: postgres://postgres:password_discover_2026@localhost:5432/discover_db
+          REDIS_URL: redis://localhost:6379/0
+        run: |
+          source venv/bin/activate
+          python manage.py migrate
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgres://postgres:password_discover_2026@localhost:5432/discover_db
+          REDIS_URL: redis://localhost:6379/0
+          DJANGO_SECRET_KEY: test-secret-key
+          DJANGO_DEBUG: True
+        run: |
+          source venv/bin/activate
+          python manage.py test tests/
+
+      - name: Check code style
+        run: |
+          source venv/bin/activate
+          pip install flake8
+          flake8 apps/ config/ tests/ --max-line-length=120
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Lint code
+        run: flake8 apps/ config/ tests/ --max-line-length=120 --exclude=venv,migrations
+
+  build:
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t discover-senegal-backend .
+
+      - name: Test Docker image
+        run: docker run --rm discover-senegal-backend python manage.py check
