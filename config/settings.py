@@ -23,7 +23,7 @@ sys.path.insert(0, str(BASE_DIR / 'apps'))
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-2pf428z&ym-oz3s$he^&ys!qb3&o)-*n-)$jxkqbmda)=5#bgm')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1,ds-rs-backend.onrender.com').split(',')
 
 INSTALLED_APPS = [
     'daphne',
