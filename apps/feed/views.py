@@ -12,7 +12,7 @@ from rest_framework.pagination import CursorPagination
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .models import Post, Report, Like, Comment, Story, MediaAsset, StoryView, SavedPost, Share
-from .serializers import PostSerializer, PostCreateSerializer, ReportSerializer, CommentSerializer, StorySerializer, MediaAssetSerializer, StoryViewSerializer
+from .serializers import PostSerializer, PostCreateSerializer, ReportSerializer, CommentSerializer, StorySerializer, MediaAssetSerializer, StoryViewSerializer, MediaUploadSerializer, ModerationActionSerializer, MaadiRecommendSerializer
 from .filters import DistanceFilterBackend
 from .services import get_personalized_feed
 from .tasks import moderate_post_with_maadi_ai, apply_watermark, fanout_post_to_followers
@@ -149,7 +149,7 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
         notify('comment', actor=self.request.user, recipient=post.user, payload={'post_id': str(post.id)})
 
 
-@extend_schema(tags=['Feed'])
+@extend_schema(tags=['Feed'], request=StorySerializer)
 class StoryListCreateView(generics.ListCreateAPIView):
     serializer_class = StorySerializer
     permission_classes = [IsAuthenticated]
@@ -162,7 +162,7 @@ class StoryListCreateView(generics.ListCreateAPIView):
         serializer.save(user=self.request.user)
 
 
-@extend_schema(tags=['Feed'])
+@extend_schema(tags=['Feed'], request=MediaUploadSerializer)
 class MediaUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -301,7 +301,7 @@ class CommentModerationQueueView(generics.ListAPIView):
         return Comment.objects.filter(status='pending_review').select_related('user', 'post')
 
 
-@extend_schema(tags=['Modération'])
+@extend_schema(tags=['Modération'], request=ModerationActionSerializer)
 class ModerationActionView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -372,7 +372,7 @@ class DiscoverView(generics.ListAPIView):
         return queryset.order_by('-likes_count', '-created_at')
 
 
-@extend_schema(tags=['Interne'])
+@extend_schema(tags=['Interne'], request=MaadiRecommendSerializer)
 class MaadiRecommendView(APIView):
     permission_classes = [IsAuthenticated]
 

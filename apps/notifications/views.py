@@ -37,7 +37,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({"detail": f"{updated} notifications marquées comme lues."}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Notifications'])
+@extend_schema(tags=['Notifications'], request=FCMTokenSerializer)
 class FCMTokenView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
