@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from django.db.models import F, Q as models_Q
+from django.db.models import F, Q as models_Q, Q as models_Q
 from django.core.cache import cache
 import random
 from rest_framework import status, generics
@@ -487,9 +487,9 @@ class UserSearchView(generics.ListAPIView):
         if not query:
             return Profile.objects.none()
         return Profile.objects.filter(
-            models.Q(username__icontains=query) |
-            models.Q(display_name__icontains=query) |
-            models.Q(user__email__icontains=query)
+            models_Q(username__icontains=query) |
+            models_Q(display_name__icontains=query) |
+            models_Q(user__email__icontains=query)
         ).select_related('user')
 
 
@@ -517,9 +517,9 @@ class ConsentToggleView(APIView):
         if not query:
             return Profile.objects.none()
         return Profile.objects.filter(
-            models.Q(username__icontains=query) |
-            models.Q(display_name__icontains=query) |
-            models.Q(user__email__icontains=query)
+            models_Q(username__icontains=query) |
+            models_Q(display_name__icontains=query) |
+            models_Q(user__email__icontains=query)
         ).select_related('user')
 
 
