@@ -12,7 +12,7 @@ from rest_framework.pagination import CursorPagination
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from .models import Post, Report, Like, Comment, Story, MediaAsset, StoryView, SavedPost, Share
-from .serializers import PostSerializer, PostCreateSerializer, ReportSerializer, CommentSerializer, StorySerializer, MediaAssetSerializer, StoryViewSerializer, StoryCreateSerializer, MediaUploadSerializer, ModerationActionSerializer, MaadiRecommendSerializer
+from .serializers import PostSerializer, PostCreateSerializer, ReportSerializer, CommentSerializer, StorySerializer, MediaAssetSerializer, StoryViewSerializer, MediaUploadSerializer, ModerationActionSerializer, MaadiRecommendSerializer
 from .filters import DistanceFilterBackend
 from .services import get_personalized_feed
 from .tasks import moderate_post_with_maadi_ai, apply_watermark, fanout_post_to_followers
@@ -149,7 +149,7 @@ class PostCommentListCreateView(generics.ListCreateAPIView):
         notify('comment', actor=self.request.user, recipient=post.user, payload={'post_id': str(post.id)})
 
 
-@extend_schema(tags=['Feed'], request=StoryCreateSerializer)
+@extend_schema(tags=['Feed'], request=StorySerializer)
 class StoryListCreateView(generics.ListCreateAPIView):
     serializer_class = StorySerializer
     permission_classes = [IsAuthenticated]
