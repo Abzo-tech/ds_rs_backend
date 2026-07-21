@@ -1,7 +1,8 @@
-from rest_framework import generics
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.contrib.gis.geos import Point
 from drf_spectacular.utils import extend_schema
+from rest_framework.response import Response
 from .models import ARFilter
 from .serializers import ARFilterSerializer, ARFilterManifestSerializer
 
@@ -49,3 +50,19 @@ class ARFilterManifestView(generics.ListAPIView):
                 pass
 
         return global_filters.order_by('-created_at')
+
+
+@extend_schema(tags=['Admin'])
+class ARFilterBulkCreateView(generics.CreateAPIView):
+    serializer_class = ARFilterSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        if not isinstance(data, list):
+            data = [data]
+
+        serializer = self.get_serializer(data=data, many=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
