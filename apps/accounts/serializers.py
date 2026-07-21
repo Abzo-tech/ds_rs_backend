@@ -127,3 +127,41 @@ class FollowSerializer(serializers.ModelSerializer):
         model = Follow
         fields = ['follower', 'followee', 'created_at']
         read_only_fields = ['follower', 'followee', 'created_at']
+
+
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+    all_devices = serializers.BooleanField(default=False)
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    old_password = serializers.CharField()
+    new_password = serializers.CharField(min_length=8)
+
+
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    user_id = serializers.UUIDField()
+    otp = serializers.CharField()
+    new_password = serializers.CharField(min_length=8)
+
+
+class CertifiedBadgeSerializer(serializers.Serializer):
+    pass
+
+
+class BlockSerializer(serializers.Serializer):
+    pass
+
+
+class ConsentToggleSerializer(serializers.Serializer):
+    consent_ai_training = serializers.BooleanField()
+
+
+class AdminBroadcastSerializer(serializers.Serializer):
+    recipient_ids = serializers.ListField(child=serializers.UUIDField())
+    type = serializers.ChoiceField(choices=['new_follower', 'like', 'comment', 'message', 'filter_unlocked', 'joo_event'])
+    payload = serializers.DictField()

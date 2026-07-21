@@ -11,8 +11,7 @@ from .models import Message, Conversation, ConversationParticipant
 from .serializers import MessageSerializer, ConversationSerializer
 
 
-@extend_schema(tags=['Chat'])
-class ConversationViewSet(viewsets.ModelViewSet):
+@extend_schema(tags=['Chat'])class ConversationViewSet(viewsets.ModelViewSet):
     serializer_class = ConversationSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -78,8 +77,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Chat'])
-class ChatMessageViewSet(viewsets.ModelViewSet):
+@extend_schema(tags=['Chat'])class ChatMessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -138,8 +136,7 @@ class ChatMessageViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-@extend_schema(tags=['Chat'])
-class ConversationMarkReadView(APIView):
+@extend_schema(tags=['Chat'])class ConversationMarkReadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, conversation_id):
@@ -157,8 +154,7 @@ class ConversationMarkReadView(APIView):
         return Response({"detail": "Conversation marquée comme lue."}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Chat'])
-class ConversationDeleteView(APIView):
+@extend_schema(tags=['Chat'])class ConversationDeleteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, conversation_id):

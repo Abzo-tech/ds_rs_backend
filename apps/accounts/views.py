@@ -54,7 +54,7 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=OAuthLoginSerializer)
 class OAuthLoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -155,7 +155,7 @@ class OAuthLoginView(APIView):
             )
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=PhoneLoginSerializer)
 class PhoneLoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -193,7 +193,7 @@ class PhoneLoginView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=PhoneRegisterSerializer)
 class PhoneRegisterRequestView(APIView):
     permission_classes = [AllowAny]
 
@@ -209,7 +209,7 @@ class PhoneRegisterRequestView(APIView):
         return Response({"detail": "Code OTP envoyé (mock).", "otp": otp}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=PhoneRegisterSerializer)
 class PhoneRegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -258,7 +258,7 @@ class PhoneRegisterView(APIView):
         }, status=status.HTTP_201_CREATED)
 
 
-@extend_schema(tags=['Utilisateurs'])
+@extend_schema(tags=['Utilisateurs'], request=UserProfileSerializer)
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -289,7 +289,7 @@ class PostAnalyticsDailyListView(generics.ListAPIView):
         return PostAnalyticsDaily.objects.filter(post__user=self.request.user).order_by('-day')
 
 
-@extend_schema(tags=['Utilisateurs'])
+@extend_schema(tags=['Utilisateurs'], request=ProfileSerializer)
 class ProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -299,7 +299,7 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         return profile
 
 
-@extend_schema(tags=['Utilisateurs'])
+@extend_schema(tags=['Utilisateurs'], request=FollowSerializer)
 class FollowView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -345,7 +345,7 @@ class FollowView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(tags=['Utilisateurs'])
+@extend_schema(tags=['Utilisateurs'], request=CertifiedBadgeSerializer)
 class CertifiedBadgeView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -378,7 +378,7 @@ class CertifiedBadgeView(APIView):
         return Response({"detail": "Badge certifié retiré.", "is_certified": target_user.is_certified}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=LogoutSerializer)
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -401,7 +401,7 @@ class LogoutView(APIView):
             return Response({"detail": "Refresh token invalide ou expiré."}, status=status.HTTP_400_BAD_REQUEST)
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=PasswordChangeSerializer)
 class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -420,7 +420,7 @@ class PasswordChangeView(APIView):
         return Response({"detail": "Mot de passe modifié avec succès."}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=PasswordResetRequestSerializer)
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
 
@@ -441,7 +441,7 @@ class PasswordResetRequestView(APIView):
         return Response({"detail": "Code OTP envoyé (mock).", "otp": otp}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=PasswordResetConfirmSerializer)
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
 
@@ -468,7 +468,7 @@ class PasswordResetConfirmView(APIView):
         return Response({"detail": "Mot de passe réinitialisé."}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Utilisateurs'])
+@extend_schema(tags=['Utilisateurs'], request=ProfileSerializer)
 class UserSearchView(generics.ListAPIView):
     serializer_class = ProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -484,7 +484,7 @@ class UserSearchView(generics.ListAPIView):
         ).select_related('user')
 
 
-@extend_schema(tags=['Utilisateurs'])
+@extend_schema(tags=['Utilisateurs'], request=ConsentToggleSerializer)
 class ConsentToggleView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -514,7 +514,7 @@ class ConsentToggleView(APIView):
         ).select_related('user')
 
 
-@extend_schema(tags=['Utilisateurs'])
+@extend_schema(tags=['Utilisateurs'], request=BlockSerializer)
 class BlockView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -583,7 +583,7 @@ class AdminUserDetailView(APIView):
         return Response({"detail": "Utilisateur mis à jour."}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Admin'])
+@extend_schema(tags=['Admin'], request=ARFilterSerializer)
 class AdminARFilterListView(generics.ListCreateAPIView):
     serializer_class = ARFilterSerializer
     permission_classes = [IsAuthenticated]
@@ -595,7 +595,7 @@ class AdminARFilterListView(generics.ListCreateAPIView):
         return ARFilter.objects.all().order_by('-created_at')
 
 
-@extend_schema(tags=['Admin'])
+@extend_schema(tags=['Admin'], request=ARFilterSerializer)
 class AdminARFilterDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ARFilterSerializer
     permission_classes = [IsAuthenticated]
@@ -607,7 +607,7 @@ class AdminARFilterDetailView(generics.RetrieveUpdateDestroyAPIView):
         super().check_object_permissions(request, obj)
 
 
-@extend_schema(tags=['Admin'])
+@extend_schema(tags=['Admin'], request=AdminBroadcastSerializer)
 class AdminBroadcastView(APIView):
     permission_classes = [IsAuthenticated]
 

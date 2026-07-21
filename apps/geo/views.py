@@ -12,8 +12,7 @@ from apps.ar_filters.models import ARFilter
 from apps.ar_filters.serializers import ARFilterSerializer
 
 
-@extend_schema(tags=['Géolocalisation'])
-class PointOfInterestViewSet(viewsets.ReadOnlyModelViewSet):
+@extend_schema(tags=['Géolocalisation'])class PointOfInterestViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PointOfInterestSerializer
     permission_classes = [IsAuthenticated]
 
@@ -37,8 +36,7 @@ class PointOfInterestViewSet(viewsets.ReadOnlyModelViewSet):
         return queryset
 
 
-@extend_schema(tags=['Géolocalisation'])
-class NearbyView(APIView):
+@extend_schema(tags=['Géolocalisation'])class NearbyView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
