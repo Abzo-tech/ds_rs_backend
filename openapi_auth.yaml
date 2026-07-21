@@ -8,6 +8,8 @@ info:
     Toutes les réponses de succès et d'erreurs sont standardisées.
     La modération du contenu est assistée par Maadi AI : un contenu peut être mis en
     pending_review pour une revue humaine légère sans bloquer l'expérience des autres utilisateurs.
+    L'authentification est inter-opérable : les tokens JWT émis par la plateforme de réservation
+    ou Maadi AI sont valides sur le réseau social via l'endpoint /api/v1/auth/verify/.
   version: 1.0.0
 servers:
   - url: http://127.0.0.1:8000
@@ -69,6 +71,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorDetailResponse'
+
+  /auth/verify/:
+    post:
+      summary: Vérification inter-plateformes du token JWT
+      tags: [Authentification]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyTokenRequest'
+      responses:
+        '200':
+          description: Token valide. Retourne les informations utilisateur pour créer une session locale.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyTokenResponse'
+        '401':
+          description: Token invalide ou expiré.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetailResponse'
+    get:
+      summary: Vérification inter-plateformes du token JWT (via query param)
+      tags: [Authentification]
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Token valide.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyTokenResponse'
+        '401':
+          description: Token invalide ou expiré.
 
   /auth/login/phone/:
     post:
@@ -2326,6 +2370,32 @@ components:
           type: string
           nullable: true
       required: [access_token]
+
+    VerifyTokenRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT token émis par une autre plateforme (réservation, Maadi AI, etc.)
+      required: [token]
+
+    VerifyTokenResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        role:
+          type: string
+          nullable: true
+      required: [valid]
 
     AuthSuccessResponse:
       type: object

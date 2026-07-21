@@ -449,20 +449,84 @@ hr { border: none; border-top: 1px solid #D8CBB8; margin: 24px 0; }
 <h3>Semaine suivante (S2)</h3>
 
 <ol>
-<li><strong>Fan-out feed :</strong> implémenter publication vers followers via Redis</li>
-<li><strong>Tests :</strong> étendre à 20+ tests, WebSocket chat, intégration Maadi</li>
-<li><strong>Déploiement :</strong> configurer Docker Compose prod, variables d'environnement, tests de charge</li>
-</ol>
+<h3>6.2 Modules fonctionnels</h3>
 
-<h2>6. Points de discussion pour la réunion</h2>
+<table>
+<tr><th>Module cadrage</th><th>Module backend</th><th>Statut</th></tr>
+<tr><td>4.1 Authentification</td><td><span class="code">accounts/</span></td><td><span class="badge badge-ok">Terminé + inter-opérable</span></td></tr>
+<tr><td>4.2 Caméra + Filtres RA</td><td><span class="code">ar_filters/</span> + <span class="code">geo/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
+<tr><td>4.3 Géolocalisation + Carte</td><td><span class="code">geo/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
+<tr><td>4.4 Messagerie</td><td><span class="code">chat/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
+<tr><td>4.5 Feed & Contenus</td><td><span class="code">feed/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
+<tr><td>4.6 Profil utilisateur</td><td><span class="code">accounts/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
+<tr><td>Intégration Maadi (§7)</td><td><span class="code">feed/tasks.py</span> + <span class="code">feed/services.py</span></td><td><span class="badge badge-wip">Prêt (attend service réel)</span></td></tr>
+</table>
+
+<h3>6.3 Flux critiques</h3>
+
+<table>
+<tr><th>Flux</th><th>Statut backend</th><th>Note</th></tr>
+<tr><td><strong>Flux 1 :</strong> Caméra → Filtre AR → Publication</td><td><span class="badge badge-ok">Prêt</span></td><td>Upload média + création post + modération async. Watermark à connecter.</td></tr>
+<tr><td><strong>Flux 2 :</strong> Feed personnalisé</td><td><span class="badge badge-wip">Partiel</span></td><td>Fallback engagement fonctionne ; Maadi AI prêt à être connecté.</td></tr>
+<tr><td><strong>Flux 3 :</strong> Auth inter-plateformes</td><td><span class="badge badge-ok">Terminé</span></td><td>Login email + verify endpoint + CORS + même SECRET_KEY.</td></tr>
+</table>
+
+<h3>6.4 Sécurité & conformité</h3>
+
+<table>
+<tr><th>Point</th><th>Statut</th></tr>
+<tr><td>RGPD / consentement Maadi (<span class="code">consent_ai_training</span>)</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td>Rôles : <span class="code">public</span>, <span class="code">tourist</span>, <span class="code">partner</span>, <span class="code">creator</span>, <span class="code">admin</span></td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td>Rate limiting (Redis)</td><td><span class="badge badge-ok">Configuré</span></td></tr>
+<tr><td>Modération assistée Maadi AI</td><td><span class="badge badge-ok">Prêt</span></td></tr>
+<tr><td>CORS whitelist (inter-plateformes)</td><td><span class="badge badge-ok">Configuré</span></td></tr>
+<tr><td>JWT rotation + blacklist</td><td><span class="badge badge-ok">OK</span></td></tr>
+</table>
+
+<h2>7. Dépendances externes à fournir</h2>
+
+<table>
+<tr><th>Dépendance</th><th>Rôle</th><th>Priorité</th><th>Impact si absent</th></tr>
+<tr>
+  <td><strong>Cloudflare R2</strong></td>
+  <td>Stockage médias et assets filtres RA</td>
+  <td><span class="badge badge-pending">P0</span></td>
+  <td>Impossible d'uploader des médias (stockage local en dev)</td>
+</tr>
+<tr>
+  <td><strong>Maadi AI</strong></td>
+  <td>Recommandations feed + modération automatique</td>
+  <td><span class="badge badge-pending">P0</span></td>
+  <td>Feed bascule en mode dégradé (chronologique)</td>
+</tr>
+<tr>
+  <td><strong>Firebase Admin</strong></td>
+  <td>Notifications push FCM</td>
+  <td><span class="badge badge-pending">P0</span></td>
+  <td>Aucune notification push</td>
+</tr>
+<tr>
+  <td><strong>Google OAuth</strong></td>
+  <td>Login social</td>
+  <td><span class="badge badge-wip">P1</span></td>
+  <td>Non bloquant</td>
+</tr>
+<tr>
+  <td><strong>Apple OAuth</strong></td>
+  <td>Login social</td>
+  <td><span class="badge badge-wip">P1</span></td>
+  <td>Non bloquant</td>
+</tr>
+</table>
+
+<h2>8. Points de discussion pour la réunion</h2>
 
 <ol>
 <li><strong>Priorisation P0 vs P1 :</strong> Maadi AI, R2, Firebase sont-ils disponibles immédiatement ?</li>
-<li><strong>Banuba vs DeepAR :</strong> quel SDK choisir ? Licence disponible ?</li>
 <li><strong>Rate limiting :</strong> stratégie Cloudflare + Redis à définir</li>
 <li><strong>Observabilité :</strong> Sentry + logs structurés à mettre en place ?</li>
 <li><strong>CI/CD :</strong> GitHub Actions à configurer pour backend + mobile ?</li>
-<li><strong>Hébergement :</strong> Railway/Render pour MVP, puis AWS/GCP pour JOJ ?</li>
+<li><strong>Hébergement :</strong> Render pour MVP, puis AWS/GCP pour JOJ ?</li>
 </ol>
 
 <hr>
