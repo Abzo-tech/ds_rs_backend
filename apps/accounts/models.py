@@ -33,7 +33,9 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_staff', False)
         extra_fields.setdefault('is_superuser', False)
         extra_fields.setdefault('is_active', True)
-        user = self.model(email=email, username=email, **extra_fields)
+        if 'username' not in extra_fields:
+            extra_fields['username'] = email
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
