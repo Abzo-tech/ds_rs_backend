@@ -234,7 +234,25 @@ hr { border: none; border-top: 1px solid #D8CBB8; margin: 24px 0; }
 <tr><td><span class="code">/api/v1/internal/maadi/recommend/</span></td><td>POST</td><td>Endpoint serveur-à-serveur Maadi AI — reçoit user_id + behavior_signals + location. À connecter au service réel.</td><td><span class="badge badge-wip">Prêt</span></td></tr>
 </table>
 
-<h2>3. Dépendances externes</h2>
+<h2>3. AR Filters (catalogue backend + application mobile)</h2>
+
+<div class="highlight">
+  <strong>Répartition des responsabilités :</strong>
+  Le backend gère le <strong>catalogue, la distribution et le déblocage géolocalisé</strong> des filtres.
+  L'équipe mobile gère <strong>l'intégration SDK Banuba/DeepAR, l'application sur caméra et le face tracking</strong>.
+  Les filtres sont uploadés sur R2/CDN et référencés dans le backend via l'admin ou l'endpoint bulk-create.
+</div>
+
+<table>
+<tr><th>Fonctionnalité</th><th>Endpoint</th><th>Accès</th><th>Logique</th></tr>
+<tr><td>Liste filtres actifs</td><td><span class="code">GET /api/v1/ar-filters/</span></td><td>Public</td><td>Retourne tous les filtres is_active=True.</td></tr>
+<tr><td>Détail filtre</td><td><span class="code">GET /api/v1/ar-filters/{id}/</span></td><td>Public</td><td>Détail complet : assets, metadata, geofence.</td></tr>
+<tr><td>Manifest géolocalisé</td><td><span class="code">GET /api/v1/ar-filters/manifest/</span></td><td>Public</td><td>Combine filtres globaux + géolocalisés selon lat/lng. Utilise PostGIS ST_DWithin.</td></tr>
+<tr><td>Bulk-create filtres</td><td><span class="code">POST /api/v1/admin/ar-filters/bulk-create/</span></td><td>Admin</td><td>Crée plusieurs filtres en une requête (array). Pour l'équipe AR filters.</td></tr>
+<tr><td>CRUD admin filtres</td><td><span class="code">/api/v1/admin/ar-filters/</span></td><td>Admin</td><td>Endpoints CRUD complets pour gérer les filtres.</td></tr>
+</table>
+
+<h2>5. Dépendances externes</h2>
 
 <table>
 <tr><th>Dépendance</th><th>Rôle</th><th>Priorité</th><th>Ressources nécessaires</th><th>Impact si absent</th></tr>
@@ -275,7 +293,7 @@ hr { border: none; border-top: 1px solid #D8CBB8; margin: 24px 0; }
 </tr>
 </table>
 
-<h2>4. Ce qui reste à faire</h2>
+<h2>6. Ce qui reste à faire</h2>
 
 <table>
 <tr><th>Tâche</th><th>Priorité</th><th>Note</th></tr>
