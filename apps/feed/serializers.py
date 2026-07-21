@@ -144,19 +144,3 @@ class MaadiRecommendSerializer(serializers.Serializer):
     behavior_signals = serializers.DictField()
     location = serializers.DictField(required=False, allow_null=True)
     limit = serializers.IntegerField(default=20)
-
-
-class MediaUploadSerializer(serializers.Serializer):
-    file = serializers.FileField()
-    type = serializers.ChoiceField(choices=['photo', 'video'])
-
-
-class ModerationActionSerializer(serializers.Serializer):
-    action = serializers.ChoiceField(choices=['approve', 'reject'])
-
-
-class MaadiRecommendSerializer(serializers.Serializer):
-    user_id = serializers.UUIDField()
-    behavior_signals = serializers.DictField()
-    location = serializers.DictField(required=False, allow_null=True)
-    limit = serializers.IntegerField(default=20)

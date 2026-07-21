@@ -13,7 +13,6 @@
   --ds-black: #1A1A1A;
   --ds-white: #FFFFFF;
   --ds-cream: #F5F0E8;
-  --ds-muted: #7A6B5D;
 }
 * { box-sizing: border-box; }
 body {
@@ -37,10 +36,6 @@ h2 {
   border-bottom: 2px solid var(--ds-brown);
   padding-bottom: 6px;
   margin-top: 34px;
-}
-h3 {
-  color: var(--ds-brown);
-  margin-top: 22px;
 }
 table {
   border-collapse: collapse;
@@ -89,8 +84,6 @@ tr:nth-child(even) { background-color: #FAF6F1; }
   margin: 16px 0;
   border-radius: 0 6px 6px 0;
 }
-ul, ol { margin: 10px 0; }
-li { margin: 6px 0; }
 .badge {
   display: inline-block;
   padding: 4px 10px;
@@ -111,359 +104,187 @@ li { margin: 6px 0; }
   border-left: 6px solid var(--ds-gold);
 }
 .header-meta strong { color: var(--ds-white); }
-a { color: var(--ds-brown); text-decoration: none; }
 hr { border: none; border-top: 1px solid #D8CBB8; margin: 24px 0; }
 </style>
 </head>
 <body>
 
-<h1>Discover Sénégal — Backend : État du projet</h1>
+<h1>Discover Sénégal — Backend</h1>
 
 <div class="header-meta">
-  <strong>Date :</strong> 15 juillet 2026 &nbsp;|&nbsp;
-  <strong>Auteur :</strong> Équipe Backend &nbsp;|&nbsp;
-  <strong>Contexte :</strong> Réunion de suivi MVP — présentation backend<br>
-  <strong>Source :</strong> Document d'Architecture Système v1.0 + Cahier des Charges Produit v1.0
+  <strong>Date :</strong> 21 juillet 2026 &nbsp;|&nbsp;
+  <strong>Contexte :</strong> Déploiement production + inter-opérabilité plateformes<br>
+  <strong>Stack :</strong> Django 6.0.7 + DRF 3.16 + PostgreSQL 16 + Redis 7 + Celery 5.4 + Django Channels 4.2
 </div>
 
-<div class="highlight">
-  <strong>Note importante :</strong> Ce document est aligné sur le cahier des charges initial.
-  La modération est <strong>assistée par Maadi AI</strong> : un contenu peut être mis en
-  <code>pending_review</code> pour une revue humaine légère sans bloquer l'expérience des autres utilisateurs.
-  Aucune fonctionnalité hors-scope MVP n'est incluse.
-  Thème graphique : <span style="color:#6B3E26;font-weight:bold;">marron</span> /
-  <span style="color:#1A1A1A;font-weight:bold;">noir</span> /
-  <span style="color:#F5F0E8;font-weight:bold;">blanc</span>.
+<h2>1. Inter-opérabilité</h2>
+
+<div class="success">
+  <strong>Compte unique inter-plateformes :</strong> Les plateformes partagent la même base de données et le même secret JWT.
+  Un utilisateur connecté sur une plateforme peut accéder aux autres sans se reconnecter.
 </div>
 
-<h2>1. Vue d'ensemble du backend</h2>
-
-<h3>1.1 Stack technique</h3>
-
 <table>
-<tr><th>Couche</th><th>Technologie</th><th>Rôle</th></tr>
-<tr><td>Framework</td><td><strong>Django 6.0.7</strong> + <strong>DRF 3.16</strong></td><td>API REST, admin, authentification</td></tr>
-<tr><td>Serveur ASGI</td><td><strong>Daphne 4.1.2</strong></td><td>HTTP + WebSocket (chat temps réel)</td></tr>
-<tr><td>Base de données</td><td><strong>PostgreSQL 18</strong> + <strong>PostGIS 3.6</strong></td><td>Données sociales + géolocalisation</td></tr>
-<tr><td>Cache / Queue</td><td><strong>Redis 7</strong> + <strong>Celery 5.4</strong></td><td>Cache feed, sessions, tâches async</td></tr>
-<tr><td>Temps réel</td><td><strong>Django Channels 4.2</strong></td><td>Chat 1-to-1 via WebSocket</td></tr>
-<tr><td>Stockage</td><td><strong>django-storages</strong> + <strong>Cloudflare R2</strong></td><td>Médias, filtres AR (S3-compatible)</td></tr>
-<tr><td>Auth</td><td><strong>SimpleJWT 5.5</strong> + OAuth Google/Apple</td><td>JWT + login social</td></tr>
-<tr><td>Documentation</td><td><strong>drf-spectacular</strong> + Swagger UI</td><td>Contrat API OpenAPI</td></tr>
-<tr><td>Tests automatisés</td><td><strong>pytest</strong> + Django TestCase + Channels</td><td>Tests automatisés</td></tr>
+<tr><th>Endpoint</th><th>Méthode</th><th>Rôle</th></tr>
+<tr><td><span class="code">/api/v1/auth/login/</span></td><td>POST</td><td>Login email + password — émet access/refresh tokens signés avec le secret partagé.</td></tr>
+<tr><td><span class="code">/api/v1/auth/verify/</span></td><td>POST</td><td>Vérifie un token JWT émis par une autre plateforme. Retourne user_id, email, role.</td></tr>
+<tr><td><span class="code">/api/v1/auth/token/refresh/</span></td><td>POST</td><td>Rafraîchit l'access token.</td></tr>
+<tr><td><span class="code">/api/v1/auth/logout/</span></td><td>POST</td><td>Blacklist le refresh token.</td></tr>
 </table>
 
-<h3>1.2 Architecture modulaire</h3>
+<h2>2. Endpoints disponibles</h2>
 
-<p>Le backend est structuré en <strong>apps Django strictes</strong> :</p>
-
-<ul>
-<li><span class="code">apps/accounts/</span> — Auth, profils, rôles, follows, analytics partenaires</li>
-<li><span class="code">apps/feed/</span> — Posts, likes, comments, stories, media, sauvegardes, partages</li>
-<li><span class="code">apps/chat/</span> — Conversations, messages, WebSocket</li>
-<li><span class="code">apps/ar_filters/</span> — Filtres RA, manifest géolocalisé</li>
-<li><span class="code">apps/geo/</span> — Points d'intérêt, nearby discovery</li>
-<li><span class="code">apps/notifications/</span> — Notifications push, tokens FCM</li>
-<li><span class="code">config/</span> — Settings, URLs, ASGI, Celery</li>
-</ul>
-
-<h2>2. Ce qui a été réalisé</h2>
-
-<h3>2.1 Authentification & Utilisateurs</h3>
-
+<h3>2.1 Authentification</h3>
 <table>
-<tr><th>Fonctionnalité</th><th>Endpoint</th><th>Statut</th></tr>
-<tr><td>Inscription email/password</td><td><span class="code">POST /api/v1/auth/register/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Connexion JWT</td><td><span class="code">POST /api/v1/auth/login/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Refresh token + blacklist</td><td><span class="code">POST /api/v1/auth/token/refresh/</span>, <span class="code">POST /api/v1/auth/logout/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Phone OTP login</td><td><span class="code">POST /api/v1/auth/login/phone/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Inscription par téléphone (OTP)</td><td><span class="code">POST /api/v1/auth/register/phone/request/</span> + <span class="code">POST /api/v1/auth/register/phone/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>OAuth Google / Apple</td><td><span class="code">POST /api/v1/auth/oauth/{provider}/</span></td><td><span class="badge badge-wip">Prêt</span></td></tr>
-<tr><td>Profil utilisateur</td><td><span class="code">GET/PUT /api/v1/users/me</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Profil public</td><td><span class="code">GET/PUT /api/v1/users/me/profile</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Recherche utilisateurs</td><td><span class="code">GET /api/v1/users/search/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Follow / Unfollow</td><td><span class="code">POST/DELETE /api/v1/users/{id}/follow/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Block / Unblock</td><td><span class="code">POST/DELETE /api/v1/users/{id}/block/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Badge certifié (admin)</td><td><span class="code">POST/DELETE /api/v1/users/{id}/certified/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Change password</td><td><span class="code">POST /api/v1/auth/password/change/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Reset password (mock OTP)</td><td><span class="code">POST /api/v1/auth/password/reset/</span> + <span class="code">/confirm/</span></td><td><span class="badge badge-wip">Mock</span></td></tr>
-<tr><td>Admin users</td><td><span class="code">/api/v1/admin/users/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><th>Endpoint</th><th>Méthode</th><th>Logique</th><th>Statut</th></tr>
+<tr><td><span class="code">/api/v1/auth/register/</span></td><td>POST</td><td>Inscription email/password — crée CustomUser, retourne JWT.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/login/</span></td><td>POST</td><td>Connexion JWT par email.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/verify/</span></td><td>POST</td><td>Vérification inter-plateformes via PyJWT.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/password/change/</span></td><td>POST</td><td>Change mot de passe (old + new, min 8 car.).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/password/reset/</span></td><td>POST</td><td>Demande reset — OTP mock console.</td><td><span class="badge badge-wip">Mock</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/password/reset/confirm/</span></td><td>POST</td><td>Confirme reset avec user_id + otp + new_password.</td><td><span class="badge badge-wip">Mock</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/login/phone/</span></td><td>POST</td><td>Connexion OTP phone — émet JWT.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/register/phone/request/</span></td><td>POST</td><td>Demande OTP mock pour inscription phone.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/register/phone/</span></td><td>POST</td><td>Inscription par téléphone avec OTP.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/auth/oauth/{provider}/</span></td><td>POST</td><td>OAuth Google/Apple — vérifie token fournisseur, émet JWT interne.</td><td><span class="badge badge-wip">Prêt</span></td></tr>
 </table>
 
-<h3>2.2 Feed & Contenu</h3>
-
+<h3>2.2 Utilisateurs</h3>
 <table>
-<tr><th>Fonctionnalité</th><th>Endpoint</th><th>Statut</th></tr>
-<tr><td>Feed personnalisé (Maadi AI + fallback)</td><td><span class="code">GET /api/v1/feed/</span></td><td><span class="badge badge-wip">Fallback</span></td></tr>
-<tr><td>Création post</td><td><span class="code">POST /api/v1/posts/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Like / Unlike</td><td><span class="code">POST/DELETE /api/v1/feed/posts/{id}/like/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Comments</td><td><span class="code">GET/POST /api/v1/feed/posts/{id}/comments/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Save / Unsave post</td><td><span class="code">POST/DELETE /api/v1/feed/posts/{id}/save/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Share post</td><td><span class="code">POST /api/v1/feed/posts/{id}/share/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Repost</td><td><span class="code">POST /api/v1/feed/posts/{id}/repost/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Report post</td><td><span class="code">POST /api/v1/feed/posts/{id}/report/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Stories (création + vues)</td><td><span class="code">GET/POST /api/v1/feed/stories/</span> + <span class="code">/view/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Upload média</td><td><span class="code">POST /api/v1/feed/upload/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Liste médias utilisateur</td><td><span class="code">GET /api/v1/feed/media/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Suppression média</td><td><span class="code">DELETE /api/v1/feed/media/{id}/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Onglet Découvrir</td><td><span class="code">GET /api/v1/feed/discover/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Modération assistée Maadi AI</td><td><span class="code">GET /api/v1/feed/moderation/queue/</span> + <span class="code">/posts/{id}/{action}/</span></td><td><span class="badge badge-wip">Assistée</span></td></tr>
+<tr><th>Endpoint</th><th>Méthode</th><th>Logique</th><th>Statut</th></tr>
+<tr><td><span class="code">/api/v1/users/me</span></td><td>GET/PUT</td><td>Profil connecté (CustomUser).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/users/me/profile</span></td><td>GET/PUT</td><td>Profil public connecté (Profile).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/users/{user_id}/</span></td><td>GET</td><td>Profil public d'un utilisateur.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/users/search/</span></td><td>GET</td><td>Recherche par q (username/display_name).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/users/{id}/follow/</span></td><td>POST/DELETE</td><td>Follow/Unfollow — atomic update compteurs.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/users/{id}/block/</span></td><td>POST/DELETE</td><td>Block/Unblock — empêche follow et messages.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/users/{id}/certified/</span></td><td>POST/DELETE</td><td>Badge certifié (staff only).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/users/me/consent/</span></td><td>POST</td><td>Toggle consent_ai_training (RGPD).</td><td><span class="badge badge-ok">OK</span></td></tr>
 </table>
 
-<h3>2.3 Chat & Messaging</h3>
-
+<h3>2.3 Feed</h3>
 <table>
-<tr><th>Fonctionnalité</th><th>Endpoint</th><th>Statut</th></tr>
-<tr><td>Conversations : list/create</td><td><span class="code">GET/POST /api/v1/chat/conversations/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Messages : list/create</td><td><span class="code">GET/POST /api/v1/chat/messages/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Mark-read conversation</td><td><span class="code">POST /api/v1/chat/conversations/{id}/mark-read/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Delete conversation</td><td><span class="code">DELETE /api/v1/chat/conversations/{id}/delete/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>WebSocket chat</td><td><span class="code">ws/chat/{conversation_id}/</span> (JWT auth)</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><th>Endpoint</th><th>Méthode</th><th>Logique</th><th>Statut</th></tr>
+<tr><td><span class="code">/api/v1/feed/</span></td><td>GET</td><td>Feed personnalisé — published posts. Si lat/lng : Maadi AI puis fallback chrono.</td><td><span class="badge badge-wip">Fallback</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/posts/</span></td><td>POST</td><td>Créer post lié à un MediaAsset. Lance modération async.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/posts/{id}/like/</span></td><td>POST/DELETE</td><td>Toggle like — atomic likes_count.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/posts/{id}/comments/</span></td><td>GET/POST</td><td>Liste paginée + création commentaire (max 300 car.).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/posts/{id}/save/</span></td><td>POST/DELETE</td><td>Sauvegarder/Retirer de la liste.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/posts/{id}/share/</span></td><td>POST</td><td>Partage — incrémente shares_count.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/posts/{id}/repost/</span></td><td>POST</td><td>Crée un Post de type repost lié à l'original.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/posts/{id}/report/</span></td><td>POST</td><td>Signaler un post (reason + description).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/comments/{id}/report/</span></td><td>POST</td><td>Signaler un commentaire.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/stories/</span></td><td>GET/POST</td><td>Liste stories actives (24h) + création.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/stories/{id}/view/</span></td><td>POST</td><td>Enregistre vue — unique par viewer.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/upload/</span></td><td>POST</td><td>Upload média (photo/video).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/media/</span></td><td>GET</td><td>Liste médias de l'utilisateur.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/media/{id}/</span></td><td>DELETE</td><td>Supprime un média non lié à un post.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/discover/</span></td><td>GET</td><td>Posts populaires + géolocalisé si lat/lng.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/moderation/queue/</span></td><td>GET</td><td>Posts en pending_review (modérateurs/admins).</td><td><span class="badge badge-wip">Assistée</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/moderation/comments/queue/</span></td><td>GET</td><td>Commentaires en pending_review.</td><td><span class="badge badge-wip">Assistée</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/moderation/{type}/{id}/{action}/</span></td><td>POST</td><td>Approuve/Rejette contenu en pending_review.</td><td><span class="badge badge-wip">Assistée</span></td></tr>
 </table>
 
-<h3>2.4 AR Filters & Géolocalisation</h3>
-
+<h3>2.4 Chat</h3>
 <table>
-<tr><th>Fonctionnalité</th><th>Endpoint</th><th>Statut</th></tr>
-<tr><td>Liste filtres RA</td><td><span class="code">GET /api/v1/ar-filters/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Détail filtre RA</td><td><span class="code">GET /api/v1/ar-filters/{id}/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Manifest géolocalisé</td><td><span class="code">GET /api/v1/ar-filters/manifest/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>POI list (PostGIS)</td><td><span class="code">GET /api/v1/geo/poi/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Nearby discovery (POI + AR)</td><td><span class="code">GET /api/v1/geo/nearby/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><th>Endpoint</th><th>Méthode</th><th>Logique</th><th>Statut</th></tr>
+<tr><td><span class="code">/api/v1/chat/conversations/</span></td><td>GET/POST</td><td>Liste conversations + création 1-to-1.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/chat/messages/</span></td><td>GET/POST</td><td>Liste messages conversation + création message.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/chat/conversations/{id}/mark-read/</span></td><td>POST</td><td>Marque messages non lus comme lus.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/chat/conversations/{id}/delete/</span></td><td>POST</td><td>Suppression logique conversation.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">ws/chat/{conversation_id}/</span></td><td>WS</td><td>WebSocket temps réel — JWT auth.</td><td><span class="badge badge-ok">OK</span></td></tr>
 </table>
 
-<h3>2.5 Notifications</h3>
-
+<h3>2.5 AR Filters & Géolocalisation</h3>
 <table>
-<tr><th>Fonctionnalité</th><th>Endpoint</th><th>Statut</th></tr>
-<tr><td>Liste notifications</td><td><span class="code">GET /api/v1/notifications/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Mark-read / mark-all-read</td><td><span class="code">POST /api/v1/notifications/{id}/mark-read/</span> + <span class="code">/mark-all-read/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Enregistrer token FCM</td><td><span class="code">POST /api/v1/notifications/fcm-token/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Supprimer token FCM</td><td><span class="code">DELETE /api/v1/notifications/fcm-token/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Broadcast admin</td><td><span class="code">POST /api/v1/admin/notifications/broadcast/</span></td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><th>Endpoint</th><th>Méthode</th><th>Logique</th><th>Statut</th></tr>
+<tr><td><span class="code">/api/v1/ar-filters/</span></td><td>GET</td><td>Liste filtres RA actifs.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/ar-filters/{id}/</span></td><td>GET</td><td>Détail filtre RA.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/ar-filters/manifest/</span></td><td>GET</td><td>Manifest géolocalisé (globaux + locaux selon lat/lng).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/geo/pois/</span></td><td>GET</td><td>Liste POIs — filtrage catégorie, rayon, recherche.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/geo/nearby/</span></td><td>GET</td><td>POIs proximité (lat/lng/dist) — PostGIS ST_Distance.</td><td><span class="badge badge-ok">OK</span></td></tr>
 </table>
 
-<h3>2.6 Infrastructure & Outils</h3>
-
+<h3>2.6 Notifications</h3>
 <table>
-<tr><th>Élément</th><th>Statut</th></tr>
-<tr><td>PostgreSQL 18 + PostGIS 3.6 installés</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Base <span class="code">discover_db</span> créée + extension PostGIS</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Migrations appliquées</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Docker Compose (db, redis, backend, celery, celery-beat)</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Settings conditionnels dev/prod</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Cache Redis (fallback LocMemCache)</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>OpenAPI docs Swagger UI (<span class="code">/api/docs/</span>)</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td><span class="code">openapi_auth.yaml</span> synchronisé</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Tests automatisés (10 tests API + 2 WebSocket)</td><td><span class="badge badge-ok">10/10 OK + 2 prêts</span></td></tr>
+<tr><th>Endpoint</th><th>Méthode</th><th>Logique</th><th>Statut</th></tr>
+<tr><td><span class="code">/api/v1/notifications/</span></td><td>GET</td><td>Notifications utilisateur (paginated).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/notifications/{id}/mark-read/</span></td><td>POST</td><td>Marque notification comme lue.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/notifications/mark-all-read/</span></td><td>POST</td><td>Marque toutes les notifications comme lues.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/notifications/fcm-token/</span></td><td>POST</td><td>Enregistre token FCM.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/notifications/fcm-token/</span></td><td>DELETE</td><td>Supprime token FCM.</td><td><span class="badge badge-ok">OK</span></td></tr>
 </table>
 
-<h2>3. Ce qui reste à faire (aligné sur le cahier des charges)</h2>
+<h3>2.7 Admin</h3>
+<table>
+<tr><th>Endpoint</th><th>Méthode</th><th>Logique</th><th>Statut</th></tr>
+<tr><td><span class="code">/api/v1/admin/users/</span></td><td>GET</td><td>Liste utilisateurs (staff only).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/admin/users/{id}/</span></td><td>GET/PATCH/DELETE</td><td>Détail + update is_active/role + delete.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/admin/ar-filters/</span></td><td>GET/POST</td><td>Liste + création filtres RA (admin).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/admin/ar-filters/{id}/</span></td><td>GET/PUT/PATCH/DELETE</td><td>CRUD complet filtres RA (admin).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/admin/notifications/broadcast/</span></td><td>POST</td><td>Broadcast notification à plusieurs utilisateurs.</td><td><span class="badge badge-ok">OK</span></td></tr>
+</table>
 
-<h3>3.1 Intégrations externes (dépendances)</h3>
+<h3>2.8 Partenaires & Interne</h3>
+<table>
+<tr><th>Endpoint</th><th>Méthode</th><th>Logique</th><th>Statut</th></tr>
+<tr><td><span class="code">/api/v1/partners/analytics</span></td><td>GET</td><td>Analytics quotidiennes partenaires.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/partners/analytics/posts</span></td><td>GET</td><td>Analytics posts partenaire.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/internal/maadi/recommend/</span></td><td>POST</td><td>Endpoint serveur-à-serveur Maadi AI — reçoit user_id + behavior_signals + location. À connecter au service réel.</td><td><span class="badge badge-wip">Prêt</span></td></tr>
+</table>
+
+<h2>3. Dépendances externes</h2>
 
 <table>
-<tr><th>Dépendance</th><th>Rôle</th><th>Priorité</th><th>Ce qu'il faut fournir</th><th>Impact si absent</th></tr>
+<tr><th>Dépendance</th><th>Rôle</th><th>Priorité</th><th>Ressources nécessaires</th><th>Impact si absent</th></tr>
 <tr>
-<td><strong>Cloudflare R2</strong></td>
-<td>Stockage objets S3-compatible pour les médias (photos, vidéos) et les assets des filtres AR. Remplace AWS S3 sans frais d'egress, critique pour les JOJ.</td>
-<td><span class="badge badge-pending">P0</span></td>
-<td>
-- <span class="code">AWS_ACCESS_KEY_ID</span> : clé API R2<br>
-- <span class="code">AWS_SECRET_ACCESS_KEY</span> : secret API R2<br>
-- <span class="code">AWS_S3_ENDPOINT_URL</span> : endpoint S3-compatible (ex: <span class="code">https://&lt;account_id&gt;.r2.cloudflarestorage.com</span>)<br>
-- <span class="code">AWS_STORAGE_BUCKET_NAME</span> : nom du bucket (ex: <span class="code">discover-senegal-media</span>)
-</td>
-<td><strong>Bloquant</strong> : impossible d'uploader des médias ou des filtres AR. L'application ne peut pas créer de contenu.</td>
+  <td><strong>Cloudflare R2</strong></td>
+  <td>Stockage médias et assets filtres RA</td>
+  <td><span class="badge badge-pending">P0</span></td>
+  <td>Clés API R2 + endpoint + nom bucket</td>
+  <td>Impossible d'uploader des médias</td>
 </tr>
 <tr>
-<td><strong>Maadi AI</strong></td>
-<td>Moteur IA pour deux fonctions clés : (1) recommandations personnalisées du feed selon le comportement et la localisation, (2) modération automatique du contenu avec score de confiance.</td>
-<td><span class="badge badge-pending">P0</span></td>
-<td>
-- <span class="code">MAADI_AI_URL</span> : URL du service (ex: <span class="code">https://maadi.discover-senegal.sn/recommend</span>)<br>
-- <span class="code">MAADI_AI_TIMEOUT</span> : timeout d'appel en ms (recommandé: <span class="code">300</span>)
-</td>
-<td><strong>Non bloquant</strong> : le feed bascule en mode dégradé (tri par popularité) et la modération automatique est désactivée. L'application reste utilisable mais moins pertinente et moins sûre.</td>
+  <td><strong>Maadi AI</strong></td>
+  <td>Recommandations feed + modération automatique</td>
+  <td><span class="badge badge-pending">P0</span></td>
+  <td>URL service + timeout</td>
+  <td>Feed en mode dégradé (chronologique)</td>
 </tr>
 <tr>
-<td><strong>Firebase Admin</strong></td>
-<td>Service de notifications push (FCM) pour iOS et Android. Permet d'alerter les utilisateurs des likes, messages, nouveaux followers et événements JOJ.</td>
-<td><span class="badge badge-pending">P0</span></td>
-<td>
-- Fichier <span class="code">firebase-admin-credentials.json</span> : clé de service générée depuis la console Firebase<br>
-- Variable <span class="code">FIREBASE_CREDENTIALS_PATH</span> : chemin d'accès au fichier sur le serveur (ex: <span class="code">/etc/secrets/firebase-admin-credentials.json</span>)
-</td>
-<td><strong>Non bloquant</strong> : aucune notification push ne peut être envoyée. L'application reste fonctionnelle mais les utilisateurs ne reçoivent pas d'alertes en temps réel.</td>
+  <td><strong>Firebase Admin</strong></td>
+  <td>Notifications push FCM</td>
+  <td><span class="badge badge-pending">P0</span></td>
+  <td>Fichier credentials JSON + FIREBASE_CREDENTIALS_PATH</td>
+  <td>Aucune notification push</td>
 </tr>
 <tr>
-<td><strong>Google OAuth</strong></td>
-<td>Login social Google pour réduire la friction d'inscription.</td>
-<td><span class="badge badge-wip">P1</span></td>
-<td>
-- <span class="code">GOOGLE_OAUTH_CLIENT_ID</span> et <span class="code">GOOGLE_OAUTH_CLIENT_SECRET</span> dans Google Cloud Console<br>
-- Configuration dans settings Django
-</td>
-<td>Non bloquant : l'inscription par email/password reste disponible.</td>
+  <td><strong>Google OAuth</strong></td>
+  <td>Login social</td>
+  <td><span class="badge badge-wip">P1</span></td>
+  <td>GOOGLE_OAUTH_CLIENT_ID + SECRET</td>
+  <td>Non bloquant</td>
 </tr>
 <tr>
-<td><strong>Apple OAuth</strong></td>
-<td>Login social Apple pour réduire la friction d'inscription.</td>
-<td><span class="badge badge-wip">P1</span></td>
-<td>
-- <span class="code">APPLE_OAUTH_SERVICE_ID</span>, <span class="code">APPLE_OAUTH_KEY_ID</span>, <span class="code">APPLE_OAUTH_TEAM_ID</span> et <span class="code">APPLE_OAUTH_PRIVATE_KEY</span> dans Apple Developer<br>
-- Configuration dans settings Django
-</td>
-<td>Non bloquant : l'inscription par email/password reste disponible.</td>
-</tr>
-<tr>
-<td><strong>Banuba/DeepAR SDK</strong></td>
-<td>SDK tiers pour l'application de filtres RA sur caméra mobile (face tracking, OTA).</td>
-<td><span class="badge badge-wip">P1</span></td>
-<td>
-- Licence SDK Banuba ou DeepAR<br>
-- Effect packs uploadés sur R2 + CDN
-</td>
-<td>Non bloquant : les filtres RA statiques fonctionnent sans SDK dynamique.</td>
-</tr>
-<tr>
-<td><strong>Watermarking</strong></td>
-<td>Tâche Celery pour ajouter le watermark "Discover Sénégal" sur les médias uploadés.</td>
-<td><span class="badge badge-wip">P1</span></td>
-<td>
-- Implémenter tâche Celery avec Pillow<br>
-- Intégrer au flow d'upload média
-</td>
-<td>Non bloquant : les médias sont uploadés sans watermark.</td>
+  <td><strong>Apple OAuth</strong></td>
+  <td>Login social</td>
+  <td><span class="badge badge-wip">P1</span></td>
+  <td>APPLE_OAUTH_* variables</td>
+  <td>Non bloquant</td>
 </tr>
 </table>
 
-<h3>3.2 Fonctionnalités backend (d'après l'architecture documentée)</h3>
+<h2>4. Ce qui reste à faire</h2>
 
 <table>
-<tr><th>Module</th><th>Fonctionnalité</th><th>Priorité</th><th>Notes</th></tr>
-<tr><td>Feed</td><td>Intégration Maadi AI (prête à brancher)</td><td><span class="badge badge-pending">P0</span></td><td>Structure en place ; attend URL Maadi AI</td></tr>
-<tr><td>Feed</td><td>Watermark automatique sur médias (tâche Celery)</td><td><span class="badge badge-pending">P0</span></td><td>Prévu dans flux critique n°1</td></tr>
-<tr><td>Feed</td><td>Fan-out léger vers followers (Redis)</td><td><span class="badge badge-pending">P0</span></td><td>Prévu dans architecture ; feed fonctionne mais sans fan-out optimisé</td></tr>
-<tr><td>Modération</td><td>File de modération automatique (tâche Celery dédiée)</td><td><span class="badge badge-pending">P0</span></td><td>Endpoints humains présents pour pending_review</td></tr>
-<tr><td>Notifications</td><td>Intégration Firebase Admin SDK réelle</td><td><span class="badge badge-pending">P0</span></td><td>Modèle FCMToken prêt ; envoi push à connecter</td></tr>
-<tr><td>AR Filters</td><td>CRUD admin complet (création/édition filtres)</td><td><span class="badge badge-ok">OK</span></td><td>Endpoints admin complets</td></tr>
-<tr><td>AR Filters</td><td>Upload assets 3D + packaging SDK</td><td><span class="badge badge-wip">P1</span></td><td>Dépend de la licence Banuba/DeepAR</td></tr>
-<tr><td>Geo</td><td>Unlock géolocalisé avancé (POI + radius)</td><td><span class="badge badge-wip">P1</span></td><td>Modèle <span class="code">POIFilterUnlock</span> prêt ; logique métier à finaliser</td></tr>
-<tr><td>Partners</td><td>Lien établissement + dashboard analytics</td><td><span class="badge badge-ok">OK</span></td><td>Modèles présents ; endpoints opérationnels</td></tr>
-<tr><td>Sécurité</td><td>Rate limiting Redis sur endpoints critiques</td><td><span class="badge badge-ok">OK</span></td><td>Middleware actif ; configuration en place</td></tr>
-<tr><td>Sécurité</td><td>2FA optionnelle</td><td><span class="badge badge-wip">P2</span></td><td>Non prévu au MVP</td></tr>
-<tr><td>Observabilité</td><td>Sentry + logs structurés</td><td><span class="badge badge-wip">P2</span></td><td>À ajouter pour la prod</td></tr>
+<tr><th>Tâche</th><th>Priorité</th><th>Note</th></tr>
+<tr><td>Connecter Maadi AI</td><td><span class="badge badge-pending">P0</span></td><td>Remplacer placeholder par appel réel. Tester scoring + modération.</td></tr>
+<tr><td>Connecter Firebase</td><td><span class="badge badge-pending">P0</span></td><td>Initialiser Firebase Admin SDK + implémenter envoi push.</td></tr>
+<tr><td>Watermarking médias</td><td><span class="badge badge-wip">P1</span></td><td>Tâche Celery Pillow à intégrer au flow upload.</td></tr>
+<tr><td>Fan-out feed vers followers</td><td><span class="badge badge-wip">P1</span></td><td>Publication Redis vers followers.</td></tr>
+<tr><td>2FA optionnelle</td><td><span class="badge badge-wip">P2</span></td><td>Non prévu au MVP.</td></tr>
+<tr><td>Sentry + logs structurés</td><td><span class="badge badge-wip">P2</span></td><td>Observabilité production.</td></tr>
 </table>
-
-<h3>3.3 Tests & Qualité</h3>
-
-<table>
-<tr><th>Élément</th><th>Statut</th></tr>
-<tr><td>Tests unitaires endpoints principaux</td><td><span class="badge badge-ok">9 tests OK</span></td></tr>
-<tr><td>Tests WebSocket chat</td><td><span class="badge badge-ok">Implémentés</span></td></tr>
-<tr><td>Tests d'intégration Maadi AI</td><td><span class="badge badge-pending">Prêt (attend service réel)</span></td></tr>
-<tr><td>Tests de modération automatique</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>CI/CD pipeline (GitHub Actions)</td><td><span class="badge badge-ok">Configuré</span></td></tr>
-</table>
-
-<h2>4. Alignement avec le cahier des charges</h2>
-
-<h3>4.1 Principes directeurs</h3>
-
-<table>
-<tr><th>Principe</th><th>Respecté ?</th><th>Commentaire</th></tr>
-<tr><td>Un seul codebase mobile (Flutter)</td><td><span class="badge badge-ok">Oui</span></td><td>Backend API-first, mobile Flutter indépendant</td></tr>
-<tr><td>Backend Django monolithe modulaire</td><td><span class="badge badge-ok">Oui</span></td><td>Apps Django strictes, extraction future possible</td></tr>
-<tr><td>Base unique partagée</td><td><span class="badge badge-ok">Oui</span></td><td>PostgreSQL unifié pour social + geo + Maadi</td></tr>
-<tr><td>SDK AR tiers (Banuba/DeepAR)</td><td><span class="badge badge-wip">Partiel</span></td><td>Endpoints prêts, SDK mobile à intégrer</td></tr>
-<tr><td>Feed v1 = règles simples + Maadi AI</td><td><span class="badge badge-ok">Oui</span></td><td>Fallback engagement + cache Redis</td></tr>
-<tr><td>Design pour échelle JOJ</td><td><span class="badge badge-ok">Oui</span></td><td>Redis, CDN, horizontal scaling ready</td></tr>
-</table>
-
-<h3>4.2 Modules fonctionnels (section 4 du cadrage)</h3>
-
-<table>
-<tr><th>Module cadrage</th><th>Module backend</th><th>Statut backend</th></tr>
-<tr><td>4.1 Authentification</td><td><span class="code">accounts/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
-<tr><td>4.2 Caméra + Filtres AR</td><td><span class="code">ar_filters/</span> + <span class="code">geo/</span></td><td><span class="badge badge-wip">Partiel</span></td></tr>
-<tr><td>4.3 Géolocalisation + Carte</td><td><span class="code">geo/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
-<tr><td>4.4 Messagerie</td><td><span class="code">chat/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
-<tr><td>4.5 Feed & Contenus</td><td><span class="code">feed/</span> + <span class="code">stories/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
-<tr><td>4.6 Profil utilisateur</td><td><span class="code">accounts/</span></td><td><span class="badge badge-ok">Terminé</span></td></tr>
-<tr><td>Intégration Maadi (§7)</td><td><span class="code">feed/tasks.py</span> + <span class="code">feed/services.py</span></td><td><span class="badge badge-wip">Partiel</span></td></tr>
-</table>
-
-<h3>4.3 Flux critiques</h3>
-
-<table>
-<tr><th>Flux</th><th>Statut backend</th><th>Bloqueur</th></tr>
-<tr><td><strong>Flux 1 :</strong> Caméra → Filtre AR → Publication</td><td><span class="badge badge-wip">Partiel</span></td><td>Watermarking à implémenter</td></tr>
-<tr><td><strong>Flux 2 :</strong> Feed personnalisé</td><td><span class="badge badge-wip">Partiel</span></td><td>Service Maadi AI prêt ; attend URL de production</td></tr>
-</table>
-
-<h3>4.4 Sécurité & conformité</h3>
-
-<table>
-<tr><th>Point</th><th>Statut</th></tr>
-<tr><td>RGPD / consentement Maadi (<span class="code">consent_ai_training</span>)</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Rôles : <span class="code">public</span>, <span class="code">tourist</span>, <span class="code">partner</span>, <span class="code">creator</span>, <span class="code">admin</span></td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td>Rate limiting (Cloudflare + Redis)</td><td><span class="badge badge-ok">Configuré</span></td></tr>
-<tr><td>Modération assistée Maadi AI</td><td><span class="badge badge-ok">Prêt</span></td></tr>
-</table>
-
-<h2>5. Planning de finalisation (post-réunion)</h2>
-
-<h3>Semaine immédiate (S1)</h3>
-
-<ol>
-<li><strong>Fournir les dépendances externes :</strong>
-  <ul>
-    <li>Clés R2 + endpoint</li>
-    <li>URL Maadi AI + credentials</li>
-    <li>Firebase credentials</li>
-    <li>Google/Apple OAuth config</li>
-  </ul>
-</li>
-<li><strong>Connecter Maadi AI :</strong>
-  <ul>
-    <li>Remplacer le placeholder par l'appel réel</li>
-    <li>Tester scoring recommandation</li>
-    <li>Tester modération automatique</li>
-  </ul>
-</li>
-<li><strong>Connecter Firebase :</strong>
-  <ul>
-    <li>Initialiser Firebase Admin SDK</li>
-    <li>Implémenter envoi push notifications</li>
-  </ul>
-</li>
-<li><strong>Watermarking :</strong>
-  <ul>
-    <li>Implémenter tâche Celery Pillow</li>
-    <li>Tester sur médias uploadés</li>
-  </ul>
-</li>
-</ol>
-
-<h3>Semaine suivante (S2)</h3>
-
-<ol>
-<li><strong>Fan-out feed :</strong> implémenter publication vers followers via Redis</li>
-<li><strong>Tests :</strong> étendre à 20+ tests, WebSocket chat, intégration Maadi</li>
-<li><strong>Déploiement :</strong> configurer Docker Compose prod, variables d'environnement, tests de charge</li>
-</ol>
-
-<h2>6. Points de discussion pour la réunion</h2>
-
-<ol>
-<li><strong>Priorisation P0 vs P1 :</strong> Maadi AI, R2, Firebase sont-ils disponibles immédiatement ?</li>
-<li><strong>Banuba vs DeepAR :</strong> quel SDK choisir ? Licence disponible ?</li>
-<li><strong>Rate limiting :</strong> stratégie Cloudflare + Redis à définir</li>
-<li><strong>Observabilité :</strong> Sentry + logs structurés à mettre en place ?</li>
-<li><strong>CI/CD :</strong> GitHub Actions à configurer pour backend + mobile ?</li>
-<li><strong>Hébergement :</strong> Railway/Render pour MVP, puis AWS/GCP pour JOJ ?</li>
-</ol>
 
 <hr>
 
