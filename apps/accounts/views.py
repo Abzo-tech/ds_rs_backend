@@ -34,7 +34,7 @@ from apps.notifications.models import Notification
 User = get_user_model()
 
 
-@extend_schema(tags=['Authentification'])
+@extend_schema(tags=['Authentification'], request=RegisterSerializer)
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -267,7 +267,7 @@ class UserProfileView(generics.RetrieveUpdateAPIView):
         return self.request.user
 
 
-@extend_schema(tags=['Partenaires'])
+@extend_schema(tags=['Partenaires'], request=None)
 class PartnerAnalyticsListView(generics.ListAPIView):
     serializer_class = PartnerDailyAnalyticsSerializer
     permission_classes = [IsAuthenticated]
@@ -278,7 +278,7 @@ class PartnerAnalyticsListView(generics.ListAPIView):
         return PartnerDailyAnalytics.objects.filter(partner=self.request.user)
 
 
-@extend_schema(tags=['Partenaires'])
+@extend_schema(tags=['Partenaires'], request=None)
 class PostAnalyticsDailyListView(generics.ListAPIView):
     serializer_class = PostAnalyticsDailySerializer
     permission_classes = [IsAuthenticated]
@@ -539,7 +539,7 @@ class BlockView(APIView):
         return Response({"detail": "Blocage retiré."}, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Admin'])
+@extend_schema(tags=['Admin'], request=None)
 class AdminUserListView(generics.ListAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
@@ -551,7 +551,7 @@ class AdminUserListView(generics.ListAPIView):
         return User.objects.all().order_by('-created_at')
 
 
-@extend_schema(tags=['Admin'])
+@extend_schema(tags=['Admin'], request=AdminUserUpdateSerializer)
 class AdminUserDetailView(APIView):
     permission_classes = [IsAuthenticated]
 

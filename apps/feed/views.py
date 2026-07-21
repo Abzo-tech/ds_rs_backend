@@ -26,7 +26,8 @@ class FeedCursorPagination(CursorPagination):
     cursor_query_param = 'cursor'
 
 
-@extend_schema(tags=['Feed'])class FeedListView(generics.ListCreateAPIView):
+@extend_schema(tags=['Feed'])
+class FeedListView(generics.ListCreateAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = FeedCursorPagination
@@ -66,7 +67,8 @@ class FeedCursorPagination(CursorPagination):
         fanout_post_to_followers.delay(post.id)
 
 
-@extend_schema(tags=['Feed'])class ReportCreateView(generics.CreateAPIView):
+@extend_schema(tags=['Feed'])
+class ReportCreateView(generics.CreateAPIView):
     serializer_class = ReportSerializer
     permission_classes = [IsAuthenticated]
 
@@ -82,7 +84,8 @@ class FeedCursorPagination(CursorPagination):
         serializer.save(user=self.request.user, **target)
 
 
-@extend_schema(tags=['Feed'])class PostLikeView(APIView):
+@extend_schema(tags=['Feed'])
+class PostLikeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, post_id):
@@ -120,7 +123,8 @@ class FeedCursorPagination(CursorPagination):
         return Response({"detail": "Like retiré avec succès."}, status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(tags=['Feed'])class PostCommentListCreateView(generics.ListCreateAPIView):
+@extend_schema(tags=['Feed'])
+class PostCommentListCreateView(generics.ListCreateAPIView):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = FeedCursorPagination
@@ -158,7 +162,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         serializer.save(user=self.request.user)
 
 
-@extend_schema(tags=['Feed'], request=MediaUploadSerializer)class MediaUploadView(APIView):
+@extend_schema(tags=['Feed'], request=MediaUploadSerializer)
+class MediaUploadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -169,7 +174,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return Response(MediaAssetSerializer(media).data, status=status.HTTP_201_CREATED)
 
 
-@extend_schema(tags=['Feed'])class StoryViewTrackingView(APIView):
+@extend_schema(tags=['Feed'])
+class StoryViewTrackingView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, story_id):
@@ -184,7 +190,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return Response(StoryViewSerializer(story_view).data, status=status.HTTP_200_OK)
 
 
-@extend_schema(tags=['Feed'])class PostSaveView(APIView):
+@extend_schema(tags=['Feed'])
+class PostSaveView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, post_id):
@@ -207,7 +214,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(tags=['Feed'])class PostShareView(APIView):
+@extend_schema(tags=['Feed'])
+class PostShareView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, post_id):
@@ -221,7 +229,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return Response({"detail": "Partage enregistré."}, status=status.HTTP_201_CREATED)
 
 
-@extend_schema(tags=['Feed'])class PostRepostView(APIView):
+@extend_schema(tags=['Feed'])
+class PostRepostView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, post_id):
@@ -246,7 +255,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-@extend_schema(tags=['Feed'])class MediaListView(generics.ListAPIView):
+@extend_schema(tags=['Feed'])
+class MediaListView(generics.ListAPIView):
     serializer_class = MediaAssetSerializer
     permission_classes = [IsAuthenticated]
 
@@ -254,7 +264,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return MediaAsset.objects.filter(owner=self.request.user).order_by('-created_at')
 
 
-@extend_schema(tags=['Feed'])class MediaDeleteView(APIView):
+@extend_schema(tags=['Feed'])
+class MediaDeleteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, media_id):
@@ -266,7 +277,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@extend_schema(tags=['Modération'])class ModerationQueueView(generics.ListAPIView):
+@extend_schema(tags=['Modération'])
+class ModerationQueueView(generics.ListAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
 
@@ -277,7 +289,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return Post.objects.filter(status='pending_review').select_related('user', 'media', 'ar_filter').prefetch_related('likes_set', 'comments_set')
 
 
-@extend_schema(tags=['Modération'])class CommentModerationQueueView(generics.ListAPIView):
+@extend_schema(tags=['Modération'])
+class CommentModerationQueueView(generics.ListAPIView):
     serializer_class = CommentSerializer
     permission_classes = [IsAuthenticated]
 
@@ -288,7 +301,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return Comment.objects.filter(status='pending_review').select_related('user', 'post')
 
 
-@extend_schema(tags=['Modération'], request=ModerationActionSerializer)class ModerationActionView(APIView):
+@extend_schema(tags=['Modération'], request=ModerationActionSerializer)
+class ModerationActionView(APIView):
     permission_classes = [IsAuthenticated]
 
     def _get_target(self, target_type, target_id):
@@ -337,7 +351,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         )
 
 
-@extend_schema(tags=['Feed'])class DiscoverView(generics.ListAPIView):
+@extend_schema(tags=['Feed'])
+class DiscoverView(generics.ListAPIView):
     serializer_class = PostSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = FeedCursorPagination
@@ -357,7 +372,8 @@ class StoryListCreateView(generics.ListCreateAPIView):
         return queryset.order_by('-likes_count', '-created_at')
 
 
-@extend_schema(tags=['Interne'], request=MaadiRecommendSerializer)class MaadiRecommendView(APIView):
+@extend_schema(tags=['Interne'], request=MaadiRecommendSerializer)
+class MaadiRecommendView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):

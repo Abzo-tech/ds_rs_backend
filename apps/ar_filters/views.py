@@ -6,7 +6,8 @@ from .models import ARFilter
 from .serializers import ARFilterSerializer, ARFilterManifestSerializer
 
 
-@extend_schema(tags=['AR Filters'])class ARFilterListView(generics.ListAPIView):
+@extend_schema(tags=['AR Filters'])
+class ARFilterListView(generics.ListAPIView):
     serializer_class = ARFilterSerializer
     permission_classes = [IsAuthenticated]
 
@@ -14,13 +15,15 @@ from .serializers import ARFilterSerializer, ARFilterManifestSerializer
         return ARFilter.objects.filter(is_active=True)
 
 
-@extend_schema(tags=['AR Filters'])class ARFilterDetailView(generics.RetrieveAPIView):
+@extend_schema(tags=['AR Filters'])
+class ARFilterDetailView(generics.RetrieveAPIView):
     serializer_class = ARFilterSerializer
     permission_classes = [IsAuthenticated]
     queryset = ARFilter.objects.filter(is_active=True)
 
 
-@extend_schema(tags=['AR Filters'])class ARFilterManifestView(generics.ListAPIView):
+@extend_schema(tags=['AR Filters'])
+class ARFilterManifestView(generics.ListAPIView):
     serializer_class = ARFilterManifestSerializer
     permission_classes = [IsAuthenticated]
 
