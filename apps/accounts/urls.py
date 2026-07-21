@@ -1,5 +1,7 @@
 from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView
+from drf_spectacular.types import OpenApiTypes
 from .views import (
     RegisterView,
     UserProfileView,
@@ -25,10 +27,12 @@ from .views import (
     AdminARFilterDetailView,
     AdminBroadcastView,
 )
+from .jwt_serializers import EmailTokenObtainPairView
+from .auth_views import verify_token
 
 urlpatterns = [
     path('auth/register/', RegisterView.as_view(), name='auth_register'),
-    path('auth/login/', TokenObtainPairView.as_view(), name='auth_login'),
+    path('auth/login/', EmailTokenObtainPairView.as_view(), name='auth_login'),
     path('auth/login/phone/', PhoneLoginView.as_view(), name='auth_login_phone'),
     path('auth/register/phone/request/', PhoneRegisterRequestView.as_view(), name='auth_phone_register_request'),
     path('auth/register/phone/', PhoneRegisterView.as_view(), name='auth_phone_register'),
@@ -38,6 +42,7 @@ urlpatterns = [
     path('auth/password/reset/', PasswordResetRequestView.as_view(), name='auth_password_reset'),
     path('auth/password/reset/confirm/', PasswordResetConfirmView.as_view(), name='auth_password_reset_confirm'),
     path('auth/oauth/<str:provider>/', OAuthLoginView.as_view(), name='auth_oauth'),
+    path('auth/verify/', verify_token, name='auth_verify'),
     path('users/me', UserProfileView.as_view(), name='user-profile-me'),
     path('users/me/profile', ProfileView.as_view(), name='user-profile'),
     path('users/<uuid:user_id>/', ProfileView.as_view(), name='user-profile-public'),
