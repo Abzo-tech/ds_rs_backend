@@ -30,15 +30,15 @@ from apps.accounts.models import CustomUser
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_token(request):
-    auth_header = request.headers.get('Authorization')
+    auth_header = request.headers.get('Authorization', '')
     
-    if not auth_header or not auth_header.startswith('Bearer '):
+    if not auth_header.startswith('Bearer '):
         return Response({
             'valid': False,
             'detail': 'Token manquant. Format: Authorization: Bearer <token>'
         }, status=status.HTTP_401_UNAUTHORIZED)
     
-    token = auth_header.split(' ')[1]
+    token = auth_header.split(' ', 1)[1].strip().strip('<>')
     
     try:
         decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
