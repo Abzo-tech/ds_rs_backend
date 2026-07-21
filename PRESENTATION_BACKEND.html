@@ -176,7 +176,7 @@ hr { border: none; border-top: 1px solid #D8CBB8; margin: 24px 0; }
 <tr><td><span class="code">/api/v1/feed/comments/{id}/report/</span></td><td>POST</td><td>Signaler un commentaire.</td><td><span class="badge badge-ok">OK</span></td></tr>
 <tr><td><span class="code">/api/v1/feed/stories/</span></td><td>GET/POST</td><td>Liste stories actives (24h) + création.</td><td><span class="badge badge-ok">OK</span></td></tr>
 <tr><td><span class="code">/api/v1/feed/stories/{id}/view/</span></td><td>POST</td><td>Enregistre vue — unique par viewer.</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td><span class="code">/api/v1/feed/upload/</span></td><td>POST</td><td>Upload média (photo/video).</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/feed/upload/</span></td><td>POST</td><td>Upload média (photo/video). <span class="badge badge-wip">À corriger : serializer attend storage_url.</span></td><td><span class="badge badge-wip">À corriger</span></td></tr>
 <tr><td><span class="code">/api/v1/feed/media/</span></td><td>GET</td><td>Liste médias de l'utilisateur.</td><td><span class="badge badge-ok">OK</span></td></tr>
 <tr><td><span class="code">/api/v1/feed/media/{id}/</span></td><td>DELETE</td><td>Supprime un média non lié à un post.</td><td><span class="badge badge-ok">OK</span></td></tr>
 <tr><td><span class="code">/api/v1/feed/discover/</span></td><td>GET</td><td>Posts populaires + géolocalisé si lat/lng.</td><td><span class="badge badge-ok">OK</span></td></tr>
@@ -191,7 +191,7 @@ hr { border: none; border-top: 1px solid #D8CBB8; margin: 24px 0; }
 <tr><td><span class="code">/api/v1/chat/conversations/</span></td><td>GET/POST</td><td>Liste conversations + création 1-to-1.</td><td><span class="badge badge-ok">OK</span></td></tr>
 <tr><td><span class="code">/api/v1/chat/messages/</span></td><td>GET/POST</td><td>Liste messages conversation + création message.</td><td><span class="badge badge-ok">OK</span></td></tr>
 <tr><td><span class="code">/api/v1/chat/conversations/{id}/mark-read/</span></td><td>POST</td><td>Marque messages non lus comme lus.</td><td><span class="badge badge-ok">OK</span></td></tr>
-<tr><td><span class="code">/api/v1/chat/conversations/{id}/delete/</span></td><td>POST</td><td>Suppression logique conversation.</td><td><span class="badge badge-ok">OK</span></td></tr>
+<tr><td><span class="code">/api/v1/chat/conversations/{id}/delete/</span></td><td>DELETE</td><td>Suppression logique conversation.</td><td><span class="badge badge-ok">OK</span></td></tr>
 <tr><td><span class="code">ws/chat/{conversation_id}/</span></td><td>WS</td><td>WebSocket temps réel — JWT auth.</td><td><span class="badge badge-ok">OK</span></td></tr>
 </table>
 
